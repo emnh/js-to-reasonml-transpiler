@@ -1,0 +1,21 @@
+{
+  "name": "js-to-reasonml-transpiler",
+  "version": "0.1.0",
+  "scripts": {
+    "webpack": "webpack",
+    "dev": "webpack-dev-server --hot"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "webpack": "^3.11.0",
+    "webpack-bundle-analyzer": "^2.11.0",
+    "webpack-dev-server": "^2.11.1"
+  },
+  "dependencies": {
+    "escodegen": "^1.9.1",
+    "esprima": "^4.0.0",
+    "pixi.js": "^4.7.1"
+  }
+}
