@@ -1,3 +1,7 @@
+var esprima = require('esprima');
+
+var escodegen = require('escodegen');
+
 var ast = esprima.parse("var answer = 42");
 
 var script = document.getElementById("example");
