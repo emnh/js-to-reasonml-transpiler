@@ -79,7 +79,10 @@ function getType(obj) {
 };
 
 var reasonCode = [];
-var reasonTypes = {};
+var reasonTypes = {
+  'unknownT': {},
+  'recursiveT': {}
+};
 var reasonModules = {};
 var reasonExterns = {};
 
@@ -124,50 +127,92 @@ function getExpression(s) {
   return newNode;
 };
 
-function processNewExpression(code, node) {
-  var r = node.callee.range;
-  var a = r[0];
-  var b = r[1];
-  var parts = code.slice(a, b).split('.');
-  var createId = 'new' + parts.join('');
-  var modName = null;
-  if (parts.length > 1) {
-    modName = parts[0];
-    if (modName in modMap) {
-      modName = modMap[modName];
+function joinArgs(node) {
+  var reasonmlArgs = [];
+  for (var i = 0; i < node.arguments.length; i++) {
+    reasonmlArgs.push(node.arguments[i].reasonml);
+  }
+  return reasonmlArgs.join(', ');
+};
+
+var processNodes = {
+  Program: function(code, node) {
+    var rml = [];
+    for (var i = 0; i < node.body.length; i++) {
+      var child = node.body[i];
+      rml.push(child.reasonml);
+    }
+    node.reasonml = rml.join('\n');
+    return node;
+  },
+  VariableDeclaration: function(code, node) {
+    var rml = [];
+    for (var i = 0; i < node.declarations.length; i++) {
+      var name = node.declarations[i].id.name;
+      var s = 'let ' + name + ' = ' + node.declarations[i].init.reasonml + ';';
+      rml.push(s);
+    }
+    node.reasonml = rml.join('\n');
+    return node;
+  },
+  Literal: function(code, node) {
+    node.reasonml = node.raw;
+    return node;
+  },
+  ObjectExpression: function(code, node) {
+    var rml = [];
+    for (var i = 0; i < node.properties.length; i++) {
+      var prop = node.properties[i];
+      var name = prop.key.name;
+      var value = prop.value;
+      rml.push('"' + name + '": ' + value.reasonml + '\n');
     };
-  };
-  var callName = parts[parts.length - 1];
-  console.log(createId);
-  var expr = 
-    'reasonml.afterNew(externName, new callee(...reasonml.beforeNew(externName, args)))';
-  var opts = {
-    externName: createId,
-    callName: callName,
-    modName: modName
-  };
-  expr = expr.replace(/externName/g, JSON.stringify(opts));
-  var newNode = getExpression(expr);
-  console.log(newNode);
-  var callee = newNode.arguments[1];
-  callee.callee = node.callee;
-  var beforeNew = callee.arguments[0].argument;
-  beforeNew.arguments.splice(1, 1, ...node.arguments);
-  return newNode;
+    node.reasonml = '{' + rml.join(',') + '}';
+    return node;
+  },
+  NewExpression: function(code, node) {
+    var r = node.callee.range;
+    var a = r[0];
+    var b = r[1];
+    var parts = code.slice(a, b).split('.');
+    var createId = 'new' + parts.join('');
+    var modName = null;
+    if (parts.length > 1) {
+      modName = parts[0];
+      if (modName in modMap) {
+        modName = modMap[modName];
+      };
+    };
+    var callName = parts[parts.length - 1];
+    console.log(createId);
+    var expr =
+      'reasonml.afterNew(externName, new callee(...reasonml.beforeNew(externName, args)))';
+    var opts = {
+      externName: createId,
+      callName: callName,
+      modName: modName
+    };
+    expr = expr.replace(/externName/g, JSON.stringify(opts));
+    var newNode = getExpression(expr);
+    console.log(newNode);
+    var callee = newNode.arguments[1];
+    callee.callee = node.callee;
+    var beforeNew = callee.arguments[0].argument;
+    beforeNew.arguments.splice(1, 1, ...node.arguments);
+    newNode.reasonml = createId + "(" + joinArgs(node) + ")";
+    return newNode;
+  }
 };
 
-function postProcess(code, node) {
-  switch (node.type) {
-    case 'NewExpression':
-      return processNewExpression(code, node);
-      break;
-    default:
-      return node;
-      break;
+function postProcessTypes(code, node) {
+  if (node.type in processNodes) {
+    var process = processNodes[node.type];
+    return process(code, node);
   };
+  return node;
 };
 
-function walk(code, node) {
+function walk(code, node, postProcess) {
   if (node.hasOwnProperty('type')) {
     var newNode = {};
     /*
@@ -179,10 +224,10 @@ function walk(code, node) {
       if (Array.isArray(value)) {
         newValue = [];
         for (var i = 0; i < value.length; i++) {
-          newValue.push(walk(code, value[i]));
+          newValue.push(walk(code, value[i], postProcess));
         }
       } else {
-        newValue = walk(code, value);
+        newValue = walk(code, value, postProcess);
       }
       newNode[prop] = newValue;
     }
@@ -194,8 +239,8 @@ function walk(code, node) {
   return node;
 };
 
-function rewrite(code, ast) {
-  return walk(code, ast);
+function rewrite(code, ast, postProcess) {
+  return walk(code, ast, postProcess);
 };
 
 function declareTypes() {
@@ -237,9 +282,9 @@ $.get(
 
     syntax = escodegen.attachComments(syntax, syntax.comments, syntax.tokens);
 
-    syntax = rewrite(data, syntax);
-
     document.body.innerHTML = "<pre>" + JSON.stringify(syntax, null, 2) + "</pre>";
+
+    var syntaxForTypes = rewrite(data, syntax, postProcessTypes);
 
     var indent = '  ';
     var quotes = 'auto';
@@ -253,7 +298,7 @@ $.get(
         }
     };
 
-    var code = escodegen.generate(syntax, option);
+    var code = escodegen.generate(syntaxForTypes, option);
 
     console.log(code);
 
@@ -265,6 +310,10 @@ $.get(
 
     var header = types.join('\n') + '\n' + decl.join('\n');
 
-    console.log(header);
+    var body = syntaxForTypes.reasonml;
+
+    var program = header + '\n' + body;
+
+    console.log(program);
   },
   "text");
