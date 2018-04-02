@@ -4,7 +4,7 @@ document.body.appendChild(app.view);
 // Scale mode for all textures, will retain pixelation
 PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
 
-var sprite = PIXI.Sprite.fromImage('required/assets/basics/bunny.png');
+var sprite = PIXI.Sprite.fromImage('http://pixijs.io/examples/required/assets/basics/bunny.png');
 
 // Set the initial position
 sprite.anchor.set(0.5);
