@@ -1,4 +1,7 @@
 var app = new PIXI.Application(800, 600, { backgroundColor: 0x1099bb });
+/*
+console.log(app.constructor.name);
+*/
 document.body.appendChild(app.view);
 
 // Scale mode for all textures, will retain pixelation
@@ -31,3 +34,7 @@ function onClick () {
     sprite.scale.y *= 1.25;
 }
 
+
+var x = 2;
+
+x = 3;
