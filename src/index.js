@@ -2,6 +2,12 @@ var esprima = require('esprima');
 
 var escodegen = require('escodegen');
 
+var CodeMirror = require('codemirror');
+
+require('codemirror/mode/javascript/javascript');
+
+require('codemirror/mode/mllike/mllike');
+
 var $ = require('jquery');
 
 var scriptSource = "src/example.js";
@@ -319,7 +325,9 @@ var processNodes = {
     if (node.expression[globalTypeName] !== 'unit' && node.expression[globalTypeName] !== undefined) {
       prefix = 'let _ = ';
     };
+    /*
     console.log(getCode(code, node), node.expression[globalTypeName]);
+    */
     node.reasonml = prefix + node.expression.reasonml + ';';
     return node;
   },
@@ -419,7 +427,7 @@ var processNodes = {
     node.reasonml = node.left.reasonml + ' ' + node.operator + ' ' + node.right.reasonml;
     return node;
   },
-  BogusTemplate: function(code, node) {
+  FunctionDeclaration: function(code, node) {
     node.reasonml = "";
     return node;
   },
@@ -723,56 +731,80 @@ function compile(data) {
 
   var program = header + '\n' + body;
 
+  /*
   console.log(program);
+  */
 
   return program;
 };
 
-$.get(
-  scriptSource,
-  function(data) {
+/* Load CodeMirror CSS */
+$('document').ready(function() {
+  $('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href',
+        'css/codemirror.css'));
 
-    $('body').append('<h2>Introduction</h2>');
-    $('body').append('<p>Welcome to my very hacky JavaScript to ReasonML transpiler! ' +
-        'Paste your code in the <a href="#exampleCode">Example Code</a> ' +
-        'and the script will try to convert it into ReasonML externs and code. ' +
-        'WARNING: Example code will be evaled in a rewritten form to fill in the types. ' +
-        'Untriggered event handlers and functions will not be translated.' +
-        'Just some basics are supported for now, and it is sure to be buggy, ' + 
-        'but it might be more helpful than starting from scratch.</p>' + 
-        '<p>Make sure your example code does not clear the DOM, or you will lose the output boxes.</p>');
+  $.get(
+    scriptSource,
+    function(data) {
 
-    $('body').append('<div><a name="exampleCode"><h2>Example code</h2></a>' +
-        '<textarea id="example" cols=80 rows=20></textarea></div>');
-    var textarea = $('#example');
-    textarea.val(data);
-    
-    $('body').append('<div><a name="libraryCode"><h2>Library code</h2></a>' +
-        '<p>Paste extra library code here. ' +
-        'Will be evaluated for example code to use, but not attempted translated. ' +
-        '</p><textarea id="libsource" cols=80 rows=10></textarea></div>');
-    var libarea = $('#libsource');
-    var pixiURL = 'https://cdnjs.cloudflare.com/ajax/libs/pixi.js/4.7.1/pixi.js';
-    libarea.val('$.getScript("' + pixiURL + '", function(data) { $("#result").val("Library loaded"); });');
-    
-    $('body').append('<h2>ReasonML Output</h2>');
-    
-    $('body').append(
-      '<div><input id="loadlibs" type="button" value="Load Library"></input>' +
-      '<input id="transpile" type="button" value="Transpile"></input></div>');
-    
-    $('body').append('<textarea id="result" cols=80 rows=40></textarea>');
+      $('body').append('<h2>Introduction</h2>');
+      $('body').append('<p>Welcome to my very hacky JavaScript to ReasonML transpiler! ' +
+          'Paste your code in the <a href="#exampleCode">Code to Transpile</a> ' +
+          'and the script will try to convert it into ReasonML externs and code. ' +
+          'WARNING: Example code will be evaled in a rewritten form to fill in the types. ' +
+          'Untriggered event handlers and functions will not be translated.' +
+          'Just some basics are supported for now, and it is sure to be buggy, ' + 
+          'but it might be more helpful than starting from scratch.</p>' + 
+          '<p>Make sure your example code does not clear the DOM, or you will lose the output boxes.</p>');
 
-    $("#loadlibs").on("click", function() {
-      eval(libarea.val());
-    });
-    $("#transpile").on("click", function() {
-      $("#result").val('Waiting for document.ready...');
-      var result = compile(textarea.val());
-      $("#result").val(result);
-    });
+      $('body').append('<div><a name="exampleCode"><h2>Code to Transpile</h2></a>' +
+          '<textarea id="example" cols=80 rows=20></textarea></div>');
+      var textarea = $('#example');
+      textarea.val(data);
+      var editor = CodeMirror.fromTextArea(textarea[0], {
+        lineNumbers: true,
+        mode: 'javascript'
+      });
+      
+      $('body').append('<div><a name="libraryCode"><h2>Library code</h2></a>' +
+          '<p>Paste extra library code here. ' +
+          'Will be evaluated for example code to use, but not attempted translated. ' +
+          '</p><textarea id="libsource" cols=80 rows=10></textarea></div>');
+      var libarea = $('#libsource');
+      var pixiURL = 'https://cdnjs.cloudflare.com/ajax/libs/pixi.js/4.7.1/pixi.js';
+      libarea.val('$.getScript("' + pixiURL + '", function(data) { console.log("Library loaded"); });');
+      
+      var editor2 = CodeMirror.fromTextArea(libarea[0], {
+        lineNumbers: true,
+        mode: 'javascript'
+      });
+      
+      $('body').append('<h2>ReasonML Output</h2>');
+      
+      $('body').append(
+        '<div><input id="loadlibs" type="button" value="Load Library"></input>' +
+        '<input id="transpile" type="button" value="Transpile"></input></div>');
+      
+      $('body').append('<textarea id="result" cols=80 rows=100></textarea>');
+      var resultarea = $("#result");
+      var editor3 = CodeMirror.fromTextArea(resultarea[0], {
+        lineNumbers: true,
+        mode: 'mllike'
+      });
 
-    $('body').append('<h2>Eval DOM Output</h2>');
-  },
-  "text");
-    
+      $("#loadlibs").on("click", function() {
+        eval(editor2.getDoc().getValue());
+      });
+      $("#transpile").on("click", function() {
+        $("#result").val('Waiting for document.ready...');
+        var result = compile(editor.getDoc().getValue());
+        /*
+        $("#result").val(result);
+        */
+        editor3.getDoc().setValue(result);
+      });
+
+      $('body').append('<h2>Eval DOM Output</h2>');
+    },
+    "text");
+});
