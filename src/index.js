@@ -13,13 +13,21 @@ var modMap = {
   'THREE': 'three.js'
 };
 
+var globalsMap = {
+  'document': {},
+  'window': {}
+};
+
 /* Begin ReasonML runtime code generation helpers */
 var globalId = 0;
 var globalIdName = '_ReasonMLId';
 var globalIndexName = '_ReasonMLIndex';
 var globalTypeName = '_ReasonMLType';
 
-function getType(obj) {
+function getType(obj, marker) {
+  if (marker === undefined) {
+    marker = globalId++;
+  }
   switch (typeof(obj)) {
     case 'number':
       if (obj % 1 === 0) {
@@ -52,10 +60,10 @@ function getType(obj) {
       if (globalTypeName in obj) {
         return obj[globalTypeName];
       };
-      if (globalIdName in obj) {
+      if (globalIdName in obj && globalIdName == marker) {
         return 'recursiveT';
       };
-      obj[globalIdName] = globalId++;
+      obj[globalIdName] = marker;
       if (Array.isArray(obj)) {
         if (obj.length > 0) {
           var t = getType(obj[0]);
@@ -73,34 +81,57 @@ function getType(obj) {
         /*
         console.log(obj);
         */
+        var propCount = 0;
+        var propLimit = 10;
         for (var prop in obj) {
           if (prop == globalIdName) {
             continue;
           };
-          if ('hasOwnProperty' in obj && obj.hasOwnProperty(prop)) {
+          if ('hasOwnProperty' in obj && obj.hasOwnProperty(prop) && !isFunction(obj[prop])) {
             childTypes.push('"' + prop + '": ' + getType(obj[prop]));
+            propCount++;
+            if (propCount > propLimit) {
+              break;
+            };
           }
         }
         var t = '{. ';
         t += childTypes.join(', ');
         t += '}';
-        return t;
+        if (propCount <= propLimit) {
+          return t;
+        } else {
+          return 'tooBigObjectT';
+        };
       }
       break;
     default:
+      /*
+      console.log("UNKNOWNT");
+      console.log(obj);
+      */
+      if (obj === undefined) {
+        return 'unit';
+      };
+      if (isFunction(obj)) {
+        return "'unknownA => 'unknownB";
+      };
       return 'unknownT';
+      break;
   };
 };
 
 var reasonCode = [];
 var reasonTypes = {
   'unknownT': {},
-  'recursiveT': {}
+  'recursiveT': {},
+  'tooBigObjectT': {}
 };
 var reasonModules = {};
 var reasonExterns = {};
 var astNodes = [];
 var astNodeParents = {};
+var astNodesDebug = {};
 
 var reasonml = {
   beforeApply: function() {
@@ -176,15 +207,62 @@ function capitalizeFirstLetter(string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
 };
 
+function lowercaseFirstLetter(string) {
+  return string.charAt(0).toLowerCase() + string.slice(1);
+};
+
+function getExternName(code, node) {
+  var lexpr = getCode(code, node);
+  var parts = lexpr.split('.');
+  var cparts = [];
+  for (var i = 0; i < parts.length; i++) {
+    cparts[i] = capitalizeFirstLetter(parts[i]);
+  }
+  return cparts.join('');
+};
+
+function getExternCallName(code, node) {
+  var lexpr = getCode(code, node);
+  var parts = lexpr.split('.');
+  var cparts = [];
+  for (var i = 0; i < parts.length; i++) {
+    if (i == 0) {
+      cparts[i] = lowercaseFirstLetter(parts[i]);
+    } else {
+      cparts[i] = capitalizeFirstLetter(parts[i]);
+    };
+  }
+  return cparts.join('');
+};
+
+function isFunction(functionToCheck) {
+ return functionToCheck && {}.toString.call(functionToCheck) === '[object Function]';
+}
+
+function addArgTypes(node, argTypes) {
+  for (var i = 0; i < node.arguments.length; i++) {
+    var arg = node.arguments[i];
+    var argType = arg[globalTypeName];
+    argTypes.push(argType);
+  }
+};
+
 function applyExpression(opts, code, node) {
   var attributes = opts.attributes;
-  var parts = getCode(code, node.callee).split('.');
   var prefix = '';
+  var createId = 'BLAH';
   if (opts.type == 'new') {
     prefix = 'new';
+    createId = prefix + getExternName(code, node.callee);
+  } else if (opts.type == 'call') {
+    prefix = '';
+    createId = getExternCallName(code, node.callee);
   }
-  var createId = prefix + parts.join('');
+  if (prefix == '') {
+    createId = lowercaseFirstLetter(createId);
+  };
   var modName = null;
+  var parts = getCode(code, node.callee).split('.');
   if (parts.length > 1 && opts.type == 'new') {
     modName = parts[0];
     if (modName in modMap) {
@@ -194,11 +272,18 @@ function applyExpression(opts, code, node) {
   var callName = parts[parts.length - 1];
 
   var argTypes = [];
-  for (var i = 0; i < node.arguments.length; i++) {
-    var arg = node.arguments[i];
-    var argType = arg[globalTypeName];
-    argTypes.push(argType);
-  }
+  var objArg = '';
+  var reargs = joinArgs(node);
+  if (opts.type == 'call') {
+    if (node.callee.type == 'MemberExpression') {
+      argTypes.push(node.callee.object[globalTypeName]);
+      objArg = node.callee.object.reasonml;
+      if (reargs != '') {
+        objArg = objArg + ', ';
+      };
+    };
+  };
+  addArgTypes(node, argTypes);
   var retType = node[globalTypeName];
 
   var externName = createId;
@@ -211,52 +296,10 @@ function applyExpression(opts, code, node) {
   if (modName !== null) {
     reasonExterns[externName].attributes.push('[@bs.module "' + modName + '"]');
   }
-
-  node.reasonml = createId + "(" + joinArgs(node) + ")";
+  node.reasonml = createId + "(" + objArg + reargs + ")";
   return node;
-
 };
 
-function applyAssignment(opts, code, node) {
-  var attributes = opts.attributes;
-  var parts = getCode(code, node).split('.');
-  var prefix = '';
-  if (opts.type == 'new') {
-    prefix = 'new';
-  }
-  var createId = prefix + parts.join('');
-  var modName = null;
-  if (parts.length > 1 && opts.type == 'new') {
-    modName = parts[0];
-    if (modName in modMap) {
-      modName = modMap[modName];
-    };
-  };
-  var callName = parts[parts.length - 1];
-  console.log(createId);
-  var newCallee = '';
-  if (opts.type == 'new') {
-    newCallee = 'new';
-  }
-  var expr =
-    'reasonml.afterApply(externOpts, ' + newCallee + ' callee(...reasonml.beforeApply(externOpts, args)))';
-  var opts = {
-    externName: createId,
-    externTypeName: createId.replace(prefix, '') + 'T',
-    callName: callName,
-    modName: modName,
-    attributes: attributes
-  };
-  expr = expr.replace(/externOpts/g, JSON.stringify(opts));
-  var newNode = getExpression(expr);
-  console.log(newNode);
-  var callee = newNode.arguments[1];
-  callee.callee = node.callee;
-  var beforeNew = callee.arguments[0].argument;
-  beforeNew.arguments.splice(1, 1, ...node.arguments);
-  newNode.reasonml = createId + "(" + joinArgs(node) + ")";
-  return newNode;
-};
 var processNodes = {
   Program: function(code, node) {
     var rml = [];
@@ -278,7 +321,11 @@ var processNodes = {
     return node;
   },
   Literal: function(code, node) {
-    node.reasonml = node.raw;
+    if (node[globalTypeName] == 'string') {
+      node.reasonml = '"' + node.value + '"';
+    } else {
+      node.reasonml = node.raw;
+    }
     return node;
   },
   ObjectExpression: function(code, node) {
@@ -294,7 +341,11 @@ var processNodes = {
   },
   ExpressionStatement: function(code, node) {
     /* TODO: check return type if let _ is necessary */
-    node.reasonml = 'let _ = ' + node.expression.reasonml;
+    var prefix = '';
+    if (node[globalTypeName] !== 'unit' && node[globalTypeName] !== undefined) {
+      prefix = 'let _ = ';
+    };
+    node.reasonml = prefix + node.expression.reasonml + ';';
     return node;
   },
   CallExpression: function(code, node) {
@@ -306,29 +357,70 @@ var processNodes = {
       node);
   },
   MemberExpression: function(code, node) {
-    node.reasonml = node.object.reasonml + "." + node.property.reasonml;
+    var parentNode = astNodeParents[node[globalIndexName]];
+    if (parentNode.type == 'AssignmentExpression' &&
+        parentNode.left[globalIndexName] == node[globalIndexName]) {
+      qual = 'set';
+      var externName = qual + getExternName(code, node);
+      var attributes = ['[@bs.set]'];
+      var argTypes = [node.object[globalTypeName], parentNode.right[globalTypeName]];
+      var retType = 'unit';
+      var callName = node.property.name;
+      reasonExterns[externName] = {
+        attributes: attributes,
+        argTypes: argTypes,
+        retType: retType,
+        callName: callName
+      };
+      node.reasonml = '/* Not used */';
+      node.reasonmlSet = externName;
+      node.reasonmlLeft = node.object.reasonml;
+    } else {
+      if (node[globalTypeName] === undefined) {
+        node.reasonml = '/* Unresolved MemberExpression */';
+        return node;
+      };
+      qual = 'get';
+      var externName = qual + getExternName(code, node);
+      var attributes = ['[@bs.get]'];
+      var argTypes = [node.object[globalTypeName]];
+      var retType = node[globalTypeName];
+      var callName = node.property.name;
+      reasonExterns[externName] = {
+        attributes: attributes,
+        argTypes: argTypes,
+        retType: retType,
+        callName: callName
+      };
+      node.reasonml = externName + '(' + node.object.reasonml + ')';
+    }
     return node;
   },
   Identifier: function(code, node) {
-    node.reasonml = node.name;
+    if (node.name in globalsMap) {
+      var externName = node.name;
+      var attributes = ['[@bs.val]'];
+      var argTypes = ['unit'];
+      var retType = node[globalTypeName];
+      var callName = node.name;
+      reasonExterns[externName] = {
+        attributes: attributes,
+        argTypes: argTypes,
+        retType: retType,
+        callName: callName
+      };
+      node.reasonml = node.name;
+    } else {
+      node.reasonml = node.name;
+    };
     return node;
   },
   AssignmentExpression: function(code, node) {
-    var lexpr = getCode(code, node.left);
-    var parts = lexpr.split('.');
-    var cparts = [];
-    for (var i = 0; i < parts.length; i++) {
-      cparts[i] = capitalizeFirstLetter(parts[i]);
-    }
-    var name = 'set' + cparts.join('');
-    node.reasonml = name + '(' + node.left.reasonml + ", " + node.right.reasonml + ')';
-    /*
-    node.left = applyAssignment({
-        type: 'assign',
-        attributes: ['[@bs.send]']
-      },
-      code,
-      node.left);*/
+    node.reasonml = node.left.reasonmlSet + '(' + node.left.reasonmlLeft + ", " + node.right.reasonml + ')';
+    return node;
+  },
+  BinaryExpression: function(code, node) {
+    node.reasonml = node.left.reasonml + ' ' + node.operator + ' ' + node.right.reasonml;
     return node;
   },
   BogusTemplate: function(code, node) {
@@ -355,6 +447,7 @@ function postProcess(code, parentNode, node) {
 
 function U(index, arg) {
   astNodes[index][globalTypeName] = getType(arg);
+  astNodesDebug[index] = arg;
   return arg;
 };
 

@@ -34,6 +34,7 @@ function onClick () {
     sprite.scale.y *= 1.25;
 }
 
+onClick();
 
 var x = 2;
 
