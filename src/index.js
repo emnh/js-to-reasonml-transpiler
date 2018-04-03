@@ -23,6 +23,7 @@ var globalId = 0;
 var globalIdName = '_ReasonMLId';
 var globalIndexName = '_ReasonMLIndex';
 var globalTypeName = '_ReasonMLType';
+var smallObjectCounter = 0;
 
 function getType(obj, marker) {
   if (marker === undefined) {
@@ -99,7 +100,10 @@ function getType(obj, marker) {
         t += childTypes.join(', ');
         t += '}';
         if (propCount <= propLimit) {
-          return t;
+          var retval = 'smallObject' + smallObjectCounter.toString() + 'T';
+          reasonTypes[retval] = { decl: t };
+          smallObjectCounter++;
+          return retval;
         } else {
           return 'tooBigObjectT';
         };
@@ -114,7 +118,7 @@ function getType(obj, marker) {
         return 'unit';
       };
       if (isFunction(obj)) {
-        return "'unknownA => 'unknownB";
+        return "unknownFunT('a, 'b)";
       };
       return 'unknownT';
       break;
@@ -124,6 +128,7 @@ function getType(obj, marker) {
 var reasonCode = [];
 var reasonTypes = {
   'unknownT': {},
+  "unknownFunT('a, 'b)": { decl: "'a => 'b" },
   'recursiveT': {},
   'tooBigObjectT': {}
 };
@@ -404,6 +409,7 @@ var processNodes = {
       var retType = node[globalTypeName];
       var callName = node.name;
       reasonExterns[externName] = {
+        noargs: true,
         attributes: attributes,
         argTypes: argTypes,
         retType: retType,
@@ -626,12 +632,24 @@ function rewrite(code, ast, postProcess) {
   return walk(code, null, ast, postProcess);
 };
 
-function declareTypes() {
+function declareTypes(body, externs) {
   var types = [];
   for (var name in reasonTypes) {
     var value = reasonTypes[name];
-    s = 'type ' + name + ';';
-    types.push(s);
+    if ('decl' in value) {
+      value = value.decl;
+    } else {
+      value = '';
+    };
+    /* Only list types that are used */
+    if (body.includes(name) || externs.includes(name)) {
+      if (value != '') {
+        s = 'type ' + name + ' = ' + value + ';';
+      } else {
+        s = 'type ' + name + ';';
+      }
+      types.push(s);
+    };
   };
   return types;
 };
@@ -640,8 +658,14 @@ function declareExterns() {
   var externs = [];
   for (var name in reasonExterns) {
     var value = reasonExterns[name];
+    var noargs = 'noargs' in value;
     var retType = value.retType;
-    var typesig = '(' + value.argTypes.join(', ') + ') => ' + retType;
+    var typesig;
+    if (noargs) {
+      typesig = retType;
+    } else {
+      typesig = '(' + value.argTypes.join(', ') + ') => ' + retType;
+    };
     var callName = value.callName;
     var s =
       value.attributes.join(' ') +
@@ -694,12 +718,12 @@ $.get(
     eval(code);
     
     var syntaxReasonML = rewrite(data, syntax2, postProcess);
+    
+    var decl = declareExterns().join('\n');
 
-    var types = declareTypes();
+    var types = declareTypes(syntaxReasonML.reasonml, decl);
 
-    var decl = declareExterns();
-
-    var header = types.join('\n') + '\n' + decl.join('\n');
+    var header = types.join('\n') + '\n' + decl;
 
     var body = syntaxReasonML.reasonml;
 
