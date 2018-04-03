@@ -128,34 +128,34 @@
               "type": "Identifier",
               "name": "document",
               "range": [
-                73,
-                81
+                114,
+                122
               ]
             },
             "property": {
               "type": "Identifier",
               "name": "body",
               "range": [
-                82,
-                86
+                123,
+                127
               ]
             },
             "range": [
-              73,
-              86
+              114,
+              127
             ]
           },
           "property": {
             "type": "Identifier",
             "name": "appendChild",
             "range": [
-              87,
-              98
+              128,
+              139
             ]
           },
           "range": [
-            73,
-            98
+            114,
+            139
           ]
         },
         "arguments": [
@@ -166,32 +166,46 @@
               "type": "Identifier",
               "name": "app",
               "range": [
-                99,
-                102
+                140,
+                143
               ]
             },
             "property": {
               "type": "Identifier",
               "name": "view",
               "range": [
-                103,
-                107
+                144,
+                148
               ]
             },
             "range": [
-              99,
-              107
+              140,
+              148
             ]
           }
         ],
         "range": [
-          73,
-          108
+          114,
+          149
         ]
       },
       "range": [
-        73,
-        109
+        114,
+        150
+      ],
+      "leadingComments": [
+        {
+          "type": "Block",
+          "value": "\nconsole.log(app.constructor.name);\n",
+          "range": {
+            "0": 73,
+            "1": 113
+          },
+          "extendedRange": [
+            72,
+            114
+          ]
+        }
       ]
     },
     {
@@ -209,34 +223,34 @@
               "type": "Identifier",
               "name": "PIXI",
               "range": [
-                166,
-                170
+                207,
+                211
               ]
             },
             "property": {
               "type": "Identifier",
               "name": "settings",
               "range": [
-                171,
-                179
+                212,
+                220
               ]
             },
             "range": [
-              166,
-              179
+              207,
+              220
             ]
           },
           "property": {
             "type": "Identifier",
             "name": "SCALE_MODE",
             "range": [
-              180,
-              190
+              221,
+              231
             ]
           },
           "range": [
-            166,
-            190
+            207,
+            231
           ]
         },
         "right": {
@@ -249,56 +263,56 @@
               "type": "Identifier",
               "name": "PIXI",
               "range": [
-                193,
-                197
+                234,
+                238
               ]
             },
             "property": {
               "type": "Identifier",
               "name": "SCALE_MODES",
               "range": [
-                198,
-                209
+                239,
+                250
               ]
             },
             "range": [
-              193,
-              209
+              234,
+              250
             ]
           },
           "property": {
             "type": "Identifier",
             "name": "NEAREST",
             "range": [
-              210,
-              217
+              251,
+              258
             ]
           },
           "range": [
-            193,
-            217
+            234,
+            258
           ]
         },
         "range": [
-          166,
-          217
+          207,
+          258
         ]
       },
       "range": [
-        166,
-        218
+        207,
+        259
       ],
       "leadingComments": [
         {
           "type": "Line",
           "value": " Scale mode for all textures, will retain pixelation",
           "range": {
-            "0": 111,
-            "1": 165
+            "0": 152,
+            "1": 206
           },
           "extendedRange": [
-            109,
-            166
+            150,
+            207
           ]
         }
       ]
@@ -312,8 +326,8 @@
             "type": "Identifier",
             "name": "sprite",
             "range": [
-              224,
-              230
+              265,
+              271
             ]
           },
           "init": {
@@ -328,34 +342,34 @@
                   "type": "Identifier",
                   "name": "PIXI",
                   "range": [
-                    233,
-                    237
+                    274,
+                    278
                   ]
                 },
                 "property": {
                   "type": "Identifier",
                   "name": "Sprite",
                   "range": [
-                    238,
-                    244
+                    279,
+                    285
                   ]
                 },
                 "range": [
-                  233,
-                  244
+                  274,
+                  285
                 ]
               },
               "property": {
                 "type": "Identifier",
                 "name": "fromImage",
                 "range": [
-                  245,
-                  254
+                  286,
+                  295
                 ]
               },
               "range": [
-                233,
-                254
+                274,
+                295
               ]
             },
             "arguments": [
@@ -364,26 +378,26 @@
                 "value": "http://pixijs.io/examples/required/assets/basics/bunny.png",
                 "raw": "'http://pixijs.io/examples/required/assets/basics/bunny.png'",
                 "range": [
-                  255,
-                  315
+                  296,
+                  356
                 ]
               }
             ],
             "range": [
-              233,
-              316
+              274,
+              357
             ]
           },
           "range": [
-            224,
-            316
+            265,
+            357
           ]
         }
       ],
       "kind": "var",
       "range": [
-        220,
-        317
+        261,
+        358
       ]
     },
     {
@@ -400,34 +414,34 @@
               "type": "Identifier",
               "name": "sprite",
               "range": [
-                347,
-                353
+                388,
+                394
               ]
             },
             "property": {
               "type": "Identifier",
               "name": "anchor",
               "range": [
-                354,
-                360
+                395,
+                401
               ]
             },
             "range": [
-              347,
-              360
+              388,
+              401
             ]
           },
           "property": {
             "type": "Identifier",
             "name": "set",
             "range": [
-              361,
-              364
+              402,
+              405
             ]
           },
           "range": [
-            347,
-            364
+            388,
+            405
           ]
         },
         "arguments": [
@@ -436,31 +450,31 @@
             "value": 0.5,
             "raw": "0.5",
             "range": [
-              365,
-              368
+              406,
+              409
             ]
           }
         ],
         "range": [
-          347,
-          369
+          388,
+          410
         ]
       },
       "range": [
-        347,
-        370
+        388,
+        411
       ],
       "leadingComments": [
         {
           "type": "Line",
           "value": " Set the initial position",
           "range": {
-            "0": 319,
-            "1": 346
+            "0": 360,
+            "1": 387
           },
           "extendedRange": [
-            317,
-            347
+            358,
+            388
           ]
         }
       ]
@@ -477,21 +491,21 @@
             "type": "Identifier",
             "name": "sprite",
             "range": [
-              371,
-              377
+              412,
+              418
             ]
           },
           "property": {
             "type": "Identifier",
             "name": "x",
             "range": [
-              378,
-              379
+              419,
+              420
             ]
           },
           "range": [
-            371,
-            379
+            412,
+            420
           ]
         },
         "right": {
@@ -507,34 +521,34 @@
                 "type": "Identifier",
                 "name": "app",
                 "range": [
-                  382,
-                  385
+                  423,
+                  426
                 ]
               },
               "property": {
                 "type": "Identifier",
                 "name": "screen",
                 "range": [
-                  386,
-                  392
+                  427,
+                  433
                 ]
               },
               "range": [
-                382,
-                392
+                423,
+                433
               ]
             },
             "property": {
               "type": "Identifier",
               "name": "width",
               "range": [
-                393,
-                398
+                434,
+                439
               ]
             },
             "range": [
-              382,
-              398
+              423,
+              439
             ]
           },
           "right": {
@@ -542,23 +556,23 @@
             "value": 2,
             "raw": "2",
             "range": [
-              401,
-              402
+              442,
+              443
             ]
           },
           "range": [
-            382,
-            402
+            423,
+            443
           ]
         },
         "range": [
-          371,
-          402
+          412,
+          443
         ]
       },
       "range": [
-        371,
-        403
+        412,
+        444
       ]
     },
     {
@@ -573,21 +587,21 @@
             "type": "Identifier",
             "name": "sprite",
             "range": [
-              404,
-              410
+              445,
+              451
             ]
           },
           "property": {
             "type": "Identifier",
             "name": "y",
             "range": [
-              411,
-              412
+              452,
+              453
             ]
           },
           "range": [
-            404,
-            412
+            445,
+            453
           ]
         },
         "right": {
@@ -603,34 +617,34 @@
                 "type": "Identifier",
                 "name": "app",
                 "range": [
-                  415,
-                  418
+                  456,
+                  459
                 ]
               },
               "property": {
                 "type": "Identifier",
                 "name": "screen",
                 "range": [
-                  419,
-                  425
+                  460,
+                  466
                 ]
               },
               "range": [
-                415,
-                425
+                456,
+                466
               ]
             },
             "property": {
               "type": "Identifier",
               "name": "height",
               "range": [
-                426,
-                432
+                467,
+                473
               ]
             },
             "range": [
-              415,
-              432
+              456,
+              473
             ]
           },
           "right": {
@@ -638,23 +652,23 @@
             "value": 2,
             "raw": "2",
             "range": [
-              435,
-              436
+              476,
+              477
             ]
           },
           "range": [
-            415,
-            436
+            456,
+            477
           ]
         },
         "range": [
-          404,
-          436
+          445,
+          477
         ]
       },
       "range": [
-        404,
-        437
+        445,
+        478
       ]
     },
     {
@@ -669,21 +683,21 @@
             "type": "Identifier",
             "name": "sprite",
             "range": [
-              466,
-              472
+              507,
+              513
             ]
           },
           "property": {
             "type": "Identifier",
             "name": "interactive",
             "range": [
-              473,
-              484
+              514,
+              525
             ]
           },
           "range": [
-            466,
-            484
+            507,
+            525
           ]
         },
         "right": {
@@ -691,30 +705,30 @@
           "value": true,
           "raw": "true",
           "range": [
-            487,
-            491
+            528,
+            532
           ]
         },
         "range": [
-          466,
-          491
+          507,
+          532
         ]
       },
       "range": [
-        466,
-        492
+        507,
+        533
       ],
       "leadingComments": [
         {
           "type": "Line",
           "value": " Opt-in to interactivity",
           "range": {
-            "0": 439,
-            "1": 465
+            "0": 480,
+            "1": 506
           },
           "extendedRange": [
-            437,
-            466
+            478,
+            507
           ]
         }
       ]
@@ -731,21 +745,21 @@
             "type": "Identifier",
             "name": "sprite",
             "range": [
-              515,
-              521
+              556,
+              562
             ]
           },
           "property": {
             "type": "Identifier",
             "name": "buttonMode",
             "range": [
-              522,
-              532
+              563,
+              573
             ]
           },
           "range": [
-            515,
-            532
+            556,
+            573
           ]
         },
         "right": {
@@ -753,203 +767,30 @@
           "value": true,
           "raw": "true",
           "range": [
-            535,
-            539
+            576,
+            580
           ]
         },
         "range": [
-          515,
-          539
+          556,
+          580
         ]
       },
       "range": [
-        515,
-        540
+        556,
+        581
       ],
       "leadingComments": [
         {
           "type": "Line",
           "value": " Shows hand cursor",
           "range": {
-            "0": 494,
-            "1": 514
+            "0": 535,
+            "1": 555
           },
           "extendedRange": [
-            492,
-            515
-          ]
-        }
-      ]
-    },
-    {
-      "type": "ExpressionStatement",
-      "expression": {
-        "type": "CallExpression",
-        "callee": {
-          "type": "MemberExpression",
-          "computed": false,
-          "object": {
-            "type": "Identifier",
-            "name": "sprite",
-            "range": [
-              580,
-              586
-            ]
-          },
-          "property": {
-            "type": "Identifier",
-            "name": "on",
-            "range": [
-              587,
-              589
-            ]
-          },
-          "range": [
-            580,
-            589
-          ]
-        },
-        "arguments": [
-          {
-            "type": "Literal",
-            "value": "pointerdown",
-            "raw": "'pointerdown'",
-            "range": [
-              590,
-              603
-            ]
-          },
-          {
-            "type": "Identifier",
-            "name": "onClick",
-            "range": [
-              605,
-              612
-            ]
-          }
-        ],
-        "range": [
-          580,
-          613
-        ]
-      },
-      "range": [
-        580,
-        614
-      ],
-      "leadingComments": [
-        {
-          "type": "Line",
-          "value": " Pointers normalize touch and mouse",
-          "range": {
-            "0": 542,
-            "1": 579
-          },
-          "extendedRange": [
-            540,
-            580
-          ]
-        }
-      ]
-    },
-    {
-      "type": "ExpressionStatement",
-      "expression": {
-        "type": "CallExpression",
-        "callee": {
-          "type": "MemberExpression",
-          "computed": false,
-          "object": {
-            "type": "MemberExpression",
-            "computed": false,
-            "object": {
-              "type": "Identifier",
-              "name": "app",
-              "range": [
-                755,
-                758
-              ]
-            },
-            "property": {
-              "type": "Identifier",
-              "name": "stage",
-              "range": [
-                759,
-                764
-              ]
-            },
-            "range": [
-              755,
-              764
-            ]
-          },
-          "property": {
-            "type": "Identifier",
-            "name": "addChild",
-            "range": [
-              765,
-              773
-            ]
-          },
-          "range": [
-            755,
-            773
-          ]
-        },
-        "arguments": [
-          {
-            "type": "Identifier",
-            "name": "sprite",
-            "range": [
-              774,
-              780
-            ]
-          }
-        ],
-        "range": [
-          755,
-          781
-        ]
-      },
-      "range": [
-        755,
-        782
-      ],
-      "leadingComments": [
-        {
-          "type": "Line",
-          "value": " Alternatively, use the mouse & touch events:",
-          "range": {
-            "0": 616,
-            "1": 663
-          },
-          "extendedRange": [
-            614,
-            755
-          ]
-        },
-        {
-          "type": "Line",
-          "value": " sprite.on('click', onClick); // mouse-only",
-          "range": {
-            "0": 664,
-            "1": 709
-          },
-          "extendedRange": [
-            614,
-            755
-          ]
-        },
-        {
-          "type": "Line",
-          "value": " sprite.on('tap', onClick); // touch-only",
-          "range": {
-            "0": 710,
-            "1": 753
-          },
-          "extendedRange": [
-            614,
-            755
+            533,
+            556
           ]
         }
       ]
@@ -960,11 +801,20 @@
         "type": "Identifier",
         "name": "onClick",
         "range": [
-          793,
-          800
+          709,
+          716
         ]
       },
-      "params": [],
+      "params": [
+        {
+          "type": "Identifier",
+          "name": "evt",
+          "range": [
+            717,
+            720
+          ]
+        }
+      ],
       "body": {
         "type": "BlockStatement",
         "body": [
@@ -983,34 +833,34 @@
                     "type": "Identifier",
                     "name": "sprite",
                     "range": [
-                      810,
-                      816
+                      803,
+                      809
                     ]
                   },
                   "property": {
                     "type": "Identifier",
                     "name": "scale",
                     "range": [
-                      817,
-                      822
+                      810,
+                      815
                     ]
                   },
                   "range": [
-                    810,
-                    822
+                    803,
+                    815
                   ]
                 },
                 "property": {
                   "type": "Identifier",
                   "name": "x",
                   "range": [
-                    823,
-                    824
+                    816,
+                    817
                   ]
                 },
                 "range": [
-                  810,
-                  824
+                  803,
+                  817
                 ]
               },
               "right": {
@@ -1018,18 +868,32 @@
                 "value": 1.25,
                 "raw": "1.25",
                 "range": [
-                  828,
-                  832
+                  821,
+                  825
                 ]
               },
               "range": [
-                810,
-                832
+                803,
+                825
               ]
             },
             "range": [
-              810,
-              833
+              803,
+              826
+            ],
+            "leadingComments": [
+              {
+                "type": "Block",
+                "value": " PS: Make sure your event handlers are called at least once by script ",
+                "range": {
+                  "0": 726,
+                  "1": 800
+                },
+                "extendedRange": [
+                  723,
+                  803
+                ]
+              }
             ]
           },
           {
@@ -1047,34 +911,34 @@
                     "type": "Identifier",
                     "name": "sprite",
                     "range": [
-                      838,
-                      844
+                      829,
+                      835
                     ]
                   },
                   "property": {
                     "type": "Identifier",
                     "name": "scale",
                     "range": [
-                      845,
-                      850
+                      836,
+                      841
                     ]
                   },
                   "range": [
-                    838,
-                    850
+                    829,
+                    841
                   ]
                 },
                 "property": {
                   "type": "Identifier",
                   "name": "y",
                   "range": [
-                    851,
-                    852
+                    842,
+                    843
                   ]
                 },
                 "range": [
-                  838,
-                  852
+                  829,
+                  843
                 ]
               },
               "right": {
@@ -1082,103 +946,425 @@
                 "value": 1.25,
                 "raw": "1.25",
                 "range": [
-                  856,
-                  860
+                  847,
+                  851
                 ]
               },
               "range": [
-                838,
-                860
+                829,
+                851
               ]
             },
             "range": [
-              838,
-              861
+              829,
+              852
             ]
           }
         ],
         "range": [
-          804,
-          863
+          722,
+          854
         ]
       },
       "generator": false,
       "expression": false,
       "async": false,
       "range": [
-        784,
-        863
+        700,
+        854
+      ],
+      "leadingComments": [
+        {
+          "type": "Block",
+          "value": " PS: Functions are not automatically lifted and must be in order for\n * generated script to use them correctly. ",
+          "range": {
+            "0": 583,
+            "1": 699
+          },
+          "extendedRange": [
+            581,
+            700
+          ]
+        }
+      ]
+    },
+    {
+      "type": "ExpressionStatement",
+      "expression": {
+        "type": "CallExpression",
+        "callee": {
+          "type": "Identifier",
+          "name": "onClick",
+          "range": [
+            963,
+            970
+          ]
+        },
+        "arguments": [],
+        "range": [
+          963,
+          972
+        ]
+      },
+      "range": [
+        963,
+        973
+      ],
+      "leadingComments": [
+        {
+          "type": "Block",
+          "value": " PS: Make sure your event handlers are called at least once by script, like\n * in the following line: ",
+          "range": {
+            "0": 856,
+            "1": 962
+          },
+          "extendedRange": [
+            854,
+            963
+          ]
+        }
+      ]
+    },
+    {
+      "type": "ExpressionStatement",
+      "expression": {
+        "type": "CallExpression",
+        "callee": {
+          "type": "MemberExpression",
+          "computed": false,
+          "object": {
+            "type": "Identifier",
+            "name": "sprite",
+            "range": [
+              1013,
+              1019
+            ]
+          },
+          "property": {
+            "type": "Identifier",
+            "name": "on",
+            "range": [
+              1020,
+              1022
+            ]
+          },
+          "range": [
+            1013,
+            1022
+          ]
+        },
+        "arguments": [
+          {
+            "type": "Literal",
+            "value": "pointerdown",
+            "raw": "'pointerdown'",
+            "range": [
+              1023,
+              1036
+            ]
+          },
+          {
+            "type": "Identifier",
+            "name": "onClick",
+            "range": [
+              1038,
+              1045
+            ]
+          }
+        ],
+        "range": [
+          1013,
+          1046
+        ]
+      },
+      "range": [
+        1013,
+        1047
+      ],
+      "leadingComments": [
+        {
+          "type": "Line",
+          "value": " Pointers normalize touch and mouse",
+          "range": {
+            "0": 975,
+            "1": 1012
+          },
+          "extendedRange": [
+            973,
+            1013
+          ]
+        }
+      ]
+    },
+    {
+      "type": "ExpressionStatement",
+      "expression": {
+        "type": "CallExpression",
+        "callee": {
+          "type": "MemberExpression",
+          "computed": false,
+          "object": {
+            "type": "MemberExpression",
+            "computed": false,
+            "object": {
+              "type": "Identifier",
+              "name": "app",
+              "range": [
+                1188,
+                1191
+              ]
+            },
+            "property": {
+              "type": "Identifier",
+              "name": "stage",
+              "range": [
+                1192,
+                1197
+              ]
+            },
+            "range": [
+              1188,
+              1197
+            ]
+          },
+          "property": {
+            "type": "Identifier",
+            "name": "addChild",
+            "range": [
+              1198,
+              1206
+            ]
+          },
+          "range": [
+            1188,
+            1206
+          ]
+        },
+        "arguments": [
+          {
+            "type": "Identifier",
+            "name": "sprite",
+            "range": [
+              1207,
+              1213
+            ]
+          }
+        ],
+        "range": [
+          1188,
+          1214
+        ]
+      },
+      "range": [
+        1188,
+        1215
+      ],
+      "leadingComments": [
+        {
+          "type": "Line",
+          "value": " Alternatively, use the mouse & touch events:",
+          "range": {
+            "0": 1049,
+            "1": 1096
+          },
+          "extendedRange": [
+            1047,
+            1188
+          ]
+        },
+        {
+          "type": "Line",
+          "value": " sprite.on('click', onClick); // mouse-only",
+          "range": {
+            "0": 1097,
+            "1": 1142
+          },
+          "extendedRange": [
+            1047,
+            1188
+          ]
+        },
+        {
+          "type": "Line",
+          "value": " sprite.on('tap', onClick); // touch-only",
+          "range": {
+            "0": 1143,
+            "1": 1186
+          },
+          "extendedRange": [
+            1047,
+            1188
+          ]
+        }
+      ]
+    },
+    {
+      "type": "VariableDeclaration",
+      "declarations": [
+        {
+          "type": "VariableDeclarator",
+          "id": {
+            "type": "Identifier",
+            "name": "x",
+            "range": [
+              1222,
+              1223
+            ]
+          },
+          "init": {
+            "type": "Literal",
+            "value": 2,
+            "raw": "2",
+            "range": [
+              1226,
+              1227
+            ]
+          },
+          "range": [
+            1222,
+            1227
+          ]
+        }
+      ],
+      "kind": "var",
+      "range": [
+        1218,
+        1228
+      ]
+    },
+    {
+      "type": "ExpressionStatement",
+      "expression": {
+        "type": "AssignmentExpression",
+        "operator": "=",
+        "left": {
+          "type": "Identifier",
+          "name": "x",
+          "range": [
+            1230,
+            1231
+          ]
+        },
+        "right": {
+          "type": "Literal",
+          "value": 3,
+          "raw": "3",
+          "range": [
+            1234,
+            1235
+          ]
+        },
+        "range": [
+          1230,
+          1235
+        ]
+      },
+      "range": [
+        1230,
+        1236
       ]
     }
   ],
   "sourceType": "script",
   "range": [
     0,
-    863
+    1236
   ],
   "comments": [
+    {
+      "type": "Block",
+      "value": "\nconsole.log(app.constructor.name);\n",
+      "range": [
+        73,
+        113
+      ]
+    },
     {
       "type": "Line",
       "value": " Scale mode for all textures, will retain pixelation",
       "range": [
-        111,
-        165
+        152,
+        206
       ]
     },
     {
       "type": "Line",
       "value": " Set the initial position",
       "range": [
-        319,
-        346
+        360,
+        387
       ]
     },
     {
       "type": "Line",
       "value": " Opt-in to interactivity",
       "range": [
-        439,
-        465
+        480,
+        506
       ]
     },
     {
       "type": "Line",
       "value": " Shows hand cursor",
       "range": [
-        494,
-        514
+        535,
+        555
+      ]
+    },
+    {
+      "type": "Block",
+      "value": " PS: Functions are not automatically lifted and must be in order for\n * generated script to use them correctly. ",
+      "range": [
+        583,
+        699
+      ]
+    },
+    {
+      "type": "Block",
+      "value": " PS: Make sure your event handlers are called at least once by script ",
+      "range": [
+        726,
+        800
+      ]
+    },
+    {
+      "type": "Block",
+      "value": " PS: Make sure your event handlers are called at least once by script, like\n * in the following line: ",
+      "range": [
+        856,
+        962
       ]
     },
     {
       "type": "Line",
       "value": " Pointers normalize touch and mouse",
       "range": [
-        542,
-        579
+        975,
+        1012
       ]
     },
     {
       "type": "Line",
       "value": " Alternatively, use the mouse & touch events:",
       "range": [
-        616,
-        663
+        1049,
+        1096
       ]
     },
     {
       "type": "Line",
       "value": " sprite.on('click', onClick); // mouse-only",
       "range": [
-        664,
-        709
+        1097,
+        1142
       ]
     },
     {
       "type": "Line",
       "value": " sprite.on('tap', onClick); // touch-only",
       "range": [
-        710,
-        753
+        1143,
+        1186
       ]
     }
   ],
@@ -1339,461 +1525,349 @@
       "type": "Identifier",
       "value": "document",
       "range": [
-        73,
-        81
+        114,
+        122
       ]
     },
     {
       "type": "Punctuator",
       "value": ".",
       "range": [
-        81,
-        82
+        122,
+        123
       ]
     },
     {
       "type": "Identifier",
       "value": "body",
       "range": [
-        82,
-        86
+        123,
+        127
       ]
     },
     {
       "type": "Punctuator",
       "value": ".",
       "range": [
-        86,
-        87
+        127,
+        128
       ]
     },
     {
       "type": "Identifier",
       "value": "appendChild",
       "range": [
-        87,
-        98
+        128,
+        139
       ]
     },
     {
       "type": "Punctuator",
       "value": "(",
       "range": [
-        98,
-        99
+        139,
+        140
       ]
     },
     {
       "type": "Identifier",
       "value": "app",
       "range": [
-        99,
-        102
+        140,
+        143
       ]
     },
     {
       "type": "Punctuator",
       "value": ".",
       "range": [
-        102,
-        103
+        143,
+        144
       ]
     },
     {
       "type": "Identifier",
       "value": "view",
       "range": [
-        103,
-        107
+        144,
+        148
       ]
     },
     {
       "type": "Punctuator",
       "value": ")",
       "range": [
-        107,
-        108
+        148,
+        149
       ]
     },
     {
       "type": "Punctuator",
       "value": ";",
       "range": [
-        108,
-        109
+        149,
+        150
       ]
     },
     {
       "type": "Identifier",
       "value": "PIXI",
       "range": [
-        166,
-        170
+        207,
+        211
       ]
     },
     {
       "type": "Punctuator",
       "value": ".",
       "range": [
-        170,
-        171
+        211,
+        212
       ]
     },
     {
       "type": "Identifier",
       "value": "settings",
       "range": [
-        171,
-        179
+        212,
+        220
       ]
     },
     {
       "type": "Punctuator",
       "value": ".",
       "range": [
-        179,
-        180
+        220,
+        221
       ]
     },
     {
       "type": "Identifier",
       "value": "SCALE_MODE",
       "range": [
-        180,
-        190
+        221,
+        231
       ]
     },
     {
       "type": "Punctuator",
       "value": "=",
       "range": [
-        191,
-        192
+        232,
+        233
       ]
     },
     {
       "type": "Identifier",
       "value": "PIXI",
       "range": [
-        193,
-        197
+        234,
+        238
       ]
     },
     {
       "type": "Punctuator",
       "value": ".",
       "range": [
-        197,
-        198
+        238,
+        239
       ]
     },
     {
       "type": "Identifier",
       "value": "SCALE_MODES",
       "range": [
-        198,
-        209
+        239,
+        250
       ]
     },
     {
       "type": "Punctuator",
       "value": ".",
       "range": [
-        209,
-        210
+        250,
+        251
       ]
     },
     {
       "type": "Identifier",
       "value": "NEAREST",
       "range": [
-        210,
-        217
+        251,
+        258
       ]
     },
     {
       "type": "Punctuator",
       "value": ";",
       "range": [
-        217,
-        218
+        258,
+        259
       ]
     },
     {
       "type": "Keyword",
       "value": "var",
       "range": [
-        220,
-        223
+        261,
+        264
       ]
     },
     {
       "type": "Identifier",
       "value": "sprite",
       "range": [
-        224,
-        230
+        265,
+        271
       ]
     },
     {
       "type": "Punctuator",
       "value": "=",
       "range": [
-        231,
-        232
+        272,
+        273
       ]
     },
     {
       "type": "Identifier",
       "value": "PIXI",
       "range": [
-        233,
-        237
+        274,
+        278
       ]
     },
     {
       "type": "Punctuator",
       "value": ".",
       "range": [
-        237,
-        238
+        278,
+        279
       ]
     },
     {
       "type": "Identifier",
       "value": "Sprite",
       "range": [
-        238,
-        244
+        279,
+        285
       ]
     },
     {
       "type": "Punctuator",
       "value": ".",
       "range": [
-        244,
-        245
+        285,
+        286
       ]
     },
     {
       "type": "Identifier",
       "value": "fromImage",
       "range": [
-        245,
-        254
+        286,
+        295
       ]
     },
     {
       "type": "Punctuator",
       "value": "(",
       "range": [
-        254,
-        255
+        295,
+        296
       ]
     },
     {
       "type": "String",
       "value": "'http://pixijs.io/examples/required/assets/basics/bunny.png'",
       "range": [
-        255,
-        315
+        296,
+        356
       ]
     },
     {
       "type": "Punctuator",
       "value": ")",
       "range": [
-        315,
-        316
+        356,
+        357
       ]
     },
     {
       "type": "Punctuator",
       "value": ";",
       "range": [
-        316,
-        317
+        357,
+        358
       ]
     },
     {
       "type": "Identifier",
       "value": "sprite",
       "range": [
-        347,
-        353
+        388,
+        394
       ]
     },
     {
       "type": "Punctuator",
       "value": ".",
       "range": [
-        353,
-        354
+        394,
+        395
       ]
     },
     {
       "type": "Identifier",
       "value": "anchor",
       "range": [
-        354,
-        360
+        395,
+        401
       ]
     },
     {
       "type": "Punctuator",
       "value": ".",
-      "range": [
-        360,
-        361
-      ]
-    },
-    {
-      "type": "Identifier",
-      "value": "set",
-      "range": [
-        361,
-        364
-      ]
-    },
-    {
-      "type": "Punctuator",
-      "value": "(",
-      "range": [
-        364,
-        365
-      ]
-    },
-    {
-      "type": "Numeric",
-      "value": "0.5",
-      "range": [
-        365,
-        368
-      ]
-    },
-    {
-      "type": "Punctuator",
-      "value": ")",
-      "range": [
-        368,
-        369
-      ]
-    },
-    {
-      "type": "Punctuator",
-      "value": ";",
-      "range": [
-        369,
-        370
-      ]
-    },
-    {
-      "type": "Identifier",
-      "value": "sprite",
-      "range": [
-        371,
-        377
-      ]
-    },
-    {
-      "type": "Punctuator",
-      "value": ".",
-      "range": [
-        377,
-        378
-      ]
-    },
-    {
-      "type": "Identifier",
-      "value": "x",
-      "range": [
-        378,
-        379
-      ]
-    },
-    {
-      "type": "Punctuator",
-      "value": "=",
-      "range": [
-        380,
-        381
-      ]
-    },
-    {
-      "type": "Identifier",
-      "value": "app",
-      "range": [
-        382,
-        385
-      ]
-    },
-    {
-      "type": "Punctuator",
-      "value": ".",
-      "range": [
-        385,
-        386
-      ]
-    },
-    {
-      "type": "Identifier",
-      "value": "screen",
-      "range": [
-        386,
-        392
-      ]
-    },
-    {
-      "type": "Punctuator",
-      "value": ".",
-      "range": [
-        392,
-        393
-      ]
-    },
-    {
-      "type": "Identifier",
-      "value": "width",
-      "range": [
-        393,
-        398
-      ]
-    },
-    {
-      "type": "Punctuator",
-      "value": "/",
-      "range": [
-        399,
-        400
-      ]
-    },
-    {
-      "type": "Numeric",
-      "value": "2",
       "range": [
         401,
         402
       ]
     },
     {
-      "type": "Punctuator",
-      "value": ";",
+      "type": "Identifier",
+      "value": "set",
       "range": [
         402,
-        403
+        405
       ]
     },
     {
-      "type": "Identifier",
-      "value": "sprite",
+      "type": "Punctuator",
+      "value": "(",
       "range": [
-        404,
+        405,
+        406
+      ]
+    },
+    {
+      "type": "Numeric",
+      "value": "0.5",
+      "range": [
+        406,
+        409
+      ]
+    },
+    {
+      "type": "Punctuator",
+      "value": ")",
+      "range": [
+        409,
         410
       ]
     },
     {
       "type": "Punctuator",
-      "value": ".",
+      "value": ";",
       "range": [
         410,
         411
@@ -1801,25 +1875,9 @@
     },
     {
       "type": "Identifier",
-      "value": "y",
+      "value": "sprite",
       "range": [
-        411,
-        412
-      ]
-    },
-    {
-      "type": "Punctuator",
-      "value": "=",
-      "range": [
-        413,
-        414
-      ]
-    },
-    {
-      "type": "Identifier",
-      "value": "app",
-      "range": [
-        415,
+        412,
         418
       ]
     },
@@ -1833,431 +1891,447 @@
     },
     {
       "type": "Identifier",
-      "value": "screen",
+      "value": "x",
       "range": [
         419,
-        425
-      ]
-    },
-    {
-      "type": "Punctuator",
-      "value": ".",
-      "range": [
-        425,
-        426
-      ]
-    },
-    {
-      "type": "Identifier",
-      "value": "height",
-      "range": [
-        426,
-        432
-      ]
-    },
-    {
-      "type": "Punctuator",
-      "value": "/",
-      "range": [
-        433,
-        434
-      ]
-    },
-    {
-      "type": "Numeric",
-      "value": "2",
-      "range": [
-        435,
-        436
-      ]
-    },
-    {
-      "type": "Punctuator",
-      "value": ";",
-      "range": [
-        436,
-        437
-      ]
-    },
-    {
-      "type": "Identifier",
-      "value": "sprite",
-      "range": [
-        466,
-        472
-      ]
-    },
-    {
-      "type": "Punctuator",
-      "value": ".",
-      "range": [
-        472,
-        473
-      ]
-    },
-    {
-      "type": "Identifier",
-      "value": "interactive",
-      "range": [
-        473,
-        484
+        420
       ]
     },
     {
       "type": "Punctuator",
       "value": "=",
       "range": [
-        485,
-        486
-      ]
-    },
-    {
-      "type": "Boolean",
-      "value": "true",
-      "range": [
-        487,
-        491
-      ]
-    },
-    {
-      "type": "Punctuator",
-      "value": ";",
-      "range": [
-        491,
-        492
-      ]
-    },
-    {
-      "type": "Identifier",
-      "value": "sprite",
-      "range": [
-        515,
-        521
-      ]
-    },
-    {
-      "type": "Punctuator",
-      "value": ".",
-      "range": [
-        521,
-        522
-      ]
-    },
-    {
-      "type": "Identifier",
-      "value": "buttonMode",
-      "range": [
-        522,
-        532
-      ]
-    },
-    {
-      "type": "Punctuator",
-      "value": "=",
-      "range": [
-        533,
-        534
-      ]
-    },
-    {
-      "type": "Boolean",
-      "value": "true",
-      "range": [
-        535,
-        539
-      ]
-    },
-    {
-      "type": "Punctuator",
-      "value": ";",
-      "range": [
-        539,
-        540
-      ]
-    },
-    {
-      "type": "Identifier",
-      "value": "sprite",
-      "range": [
-        580,
-        586
-      ]
-    },
-    {
-      "type": "Punctuator",
-      "value": ".",
-      "range": [
-        586,
-        587
-      ]
-    },
-    {
-      "type": "Identifier",
-      "value": "on",
-      "range": [
-        587,
-        589
-      ]
-    },
-    {
-      "type": "Punctuator",
-      "value": "(",
-      "range": [
-        589,
-        590
-      ]
-    },
-    {
-      "type": "String",
-      "value": "'pointerdown'",
-      "range": [
-        590,
-        603
-      ]
-    },
-    {
-      "type": "Punctuator",
-      "value": ",",
-      "range": [
-        603,
-        604
-      ]
-    },
-    {
-      "type": "Identifier",
-      "value": "onClick",
-      "range": [
-        605,
-        612
-      ]
-    },
-    {
-      "type": "Punctuator",
-      "value": ")",
-      "range": [
-        612,
-        613
-      ]
-    },
-    {
-      "type": "Punctuator",
-      "value": ";",
-      "range": [
-        613,
-        614
+        421,
+        422
       ]
     },
     {
       "type": "Identifier",
       "value": "app",
       "range": [
-        755,
-        758
+        423,
+        426
       ]
     },
     {
       "type": "Punctuator",
       "value": ".",
       "range": [
-        758,
-        759
+        426,
+        427
       ]
     },
     {
       "type": "Identifier",
-      "value": "stage",
+      "value": "screen",
       "range": [
-        759,
-        764
+        427,
+        433
       ]
     },
     {
       "type": "Punctuator",
       "value": ".",
       "range": [
-        764,
-        765
+        433,
+        434
       ]
     },
     {
       "type": "Identifier",
-      "value": "addChild",
+      "value": "width",
       "range": [
-        765,
-        773
+        434,
+        439
       ]
     },
     {
       "type": "Punctuator",
-      "value": "(",
+      "value": "/",
       "range": [
-        773,
-        774
+        440,
+        441
       ]
     },
     {
-      "type": "Identifier",
-      "value": "sprite",
+      "type": "Numeric",
+      "value": "2",
       "range": [
-        774,
-        780
-      ]
-    },
-    {
-      "type": "Punctuator",
-      "value": ")",
-      "range": [
-        780,
-        781
+        442,
+        443
       ]
     },
     {
       "type": "Punctuator",
       "value": ";",
       "range": [
-        781,
-        782
+        443,
+        444
+      ]
+    },
+    {
+      "type": "Identifier",
+      "value": "sprite",
+      "range": [
+        445,
+        451
+      ]
+    },
+    {
+      "type": "Punctuator",
+      "value": ".",
+      "range": [
+        451,
+        452
+      ]
+    },
+    {
+      "type": "Identifier",
+      "value": "y",
+      "range": [
+        452,
+        453
+      ]
+    },
+    {
+      "type": "Punctuator",
+      "value": "=",
+      "range": [
+        454,
+        455
+      ]
+    },
+    {
+      "type": "Identifier",
+      "value": "app",
+      "range": [
+        456,
+        459
+      ]
+    },
+    {
+      "type": "Punctuator",
+      "value": ".",
+      "range": [
+        459,
+        460
+      ]
+    },
+    {
+      "type": "Identifier",
+      "value": "screen",
+      "range": [
+        460,
+        466
+      ]
+    },
+    {
+      "type": "Punctuator",
+      "value": ".",
+      "range": [
+        466,
+        467
+      ]
+    },
+    {
+      "type": "Identifier",
+      "value": "height",
+      "range": [
+        467,
+        473
+      ]
+    },
+    {
+      "type": "Punctuator",
+      "value": "/",
+      "range": [
+        474,
+        475
+      ]
+    },
+    {
+      "type": "Numeric",
+      "value": "2",
+      "range": [
+        476,
+        477
+      ]
+    },
+    {
+      "type": "Punctuator",
+      "value": ";",
+      "range": [
+        477,
+        478
+      ]
+    },
+    {
+      "type": "Identifier",
+      "value": "sprite",
+      "range": [
+        507,
+        513
+      ]
+    },
+    {
+      "type": "Punctuator",
+      "value": ".",
+      "range": [
+        513,
+        514
+      ]
+    },
+    {
+      "type": "Identifier",
+      "value": "interactive",
+      "range": [
+        514,
+        525
+      ]
+    },
+    {
+      "type": "Punctuator",
+      "value": "=",
+      "range": [
+        526,
+        527
+      ]
+    },
+    {
+      "type": "Boolean",
+      "value": "true",
+      "range": [
+        528,
+        532
+      ]
+    },
+    {
+      "type": "Punctuator",
+      "value": ";",
+      "range": [
+        532,
+        533
+      ]
+    },
+    {
+      "type": "Identifier",
+      "value": "sprite",
+      "range": [
+        556,
+        562
+      ]
+    },
+    {
+      "type": "Punctuator",
+      "value": ".",
+      "range": [
+        562,
+        563
+      ]
+    },
+    {
+      "type": "Identifier",
+      "value": "buttonMode",
+      "range": [
+        563,
+        573
+      ]
+    },
+    {
+      "type": "Punctuator",
+      "value": "=",
+      "range": [
+        574,
+        575
+      ]
+    },
+    {
+      "type": "Boolean",
+      "value": "true",
+      "range": [
+        576,
+        580
+      ]
+    },
+    {
+      "type": "Punctuator",
+      "value": ";",
+      "range": [
+        580,
+        581
       ]
     },
     {
       "type": "Keyword",
       "value": "function",
       "range": [
-        784,
-        792
+        700,
+        708
       ]
     },
     {
       "type": "Identifier",
       "value": "onClick",
       "range": [
-        793,
-        800
+        709,
+        716
       ]
     },
     {
       "type": "Punctuator",
       "value": "(",
       "range": [
-        801,
-        802
+        716,
+        717
+      ]
+    },
+    {
+      "type": "Identifier",
+      "value": "evt",
+      "range": [
+        717,
+        720
       ]
     },
     {
       "type": "Punctuator",
       "value": ")",
       "range": [
-        802,
-        803
+        720,
+        721
       ]
     },
     {
       "type": "Punctuator",
       "value": "{",
       "range": [
-        804,
-        805
+        722,
+        723
       ]
     },
     {
       "type": "Identifier",
       "value": "sprite",
       "range": [
-        810,
-        816
+        803,
+        809
       ]
     },
     {
       "type": "Punctuator",
       "value": ".",
       "range": [
-        816,
-        817
+        809,
+        810
       ]
     },
     {
       "type": "Identifier",
       "value": "scale",
       "range": [
-        817,
-        822
+        810,
+        815
       ]
     },
     {
       "type": "Punctuator",
       "value": ".",
       "range": [
-        822,
-        823
+        815,
+        816
       ]
     },
     {
       "type": "Identifier",
       "value": "x",
       "range": [
-        823,
-        824
+        816,
+        817
       ]
     },
     {
       "type": "Punctuator",
       "value": "*=",
       "range": [
-        825,
-        827
+        818,
+        820
       ]
     },
     {
       "type": "Numeric",
       "value": "1.25",
       "range": [
-        828,
-        832
+        821,
+        825
       ]
     },
     {
       "type": "Punctuator",
       "value": ";",
       "range": [
-        832,
-        833
+        825,
+        826
       ]
     },
     {
       "type": "Identifier",
       "value": "sprite",
       "range": [
-        838,
-        844
+        829,
+        835
       ]
     },
     {
       "type": "Punctuator",
       "value": ".",
       "range": [
-        844,
-        845
+        835,
+        836
       ]
     },
     {
       "type": "Identifier",
       "value": "scale",
       "range": [
-        845,
-        850
+        836,
+        841
       ]
     },
     {
       "type": "Punctuator",
       "value": ".",
       "range": [
-        850,
-        851
+        841,
+        842
       ]
     },
     {
       "type": "Identifier",
       "value": "y",
+      "range": [
+        842,
+        843
+      ]
+    },
+    {
+      "type": "Punctuator",
+      "value": "*=",
+      "range": [
+        844,
+        846
+      ]
+    },
+    {
+      "type": "Numeric",
+      "value": "1.25",
+      "range": [
+        847,
+        851
+      ]
+    },
+    {
+      "type": "Punctuator",
+      "value": ";",
       "range": [
         851,
         852
@@ -2265,34 +2339,258 @@
     },
     {
       "type": "Punctuator",
-      "value": "*=",
+      "value": "}",
       "range": [
         853,
-        855
+        854
       ]
     },
     {
-      "type": "Numeric",
-      "value": "1.25",
+      "type": "Identifier",
+      "value": "onClick",
       "range": [
-        856,
-        860
+        963,
+        970
+      ]
+    },
+    {
+      "type": "Punctuator",
+      "value": "(",
+      "range": [
+        970,
+        971
+      ]
+    },
+    {
+      "type": "Punctuator",
+      "value": ")",
+      "range": [
+        971,
+        972
       ]
     },
     {
       "type": "Punctuator",
       "value": ";",
       "range": [
-        860,
-        861
+        972,
+        973
+      ]
+    },
+    {
+      "type": "Identifier",
+      "value": "sprite",
+      "range": [
+        1013,
+        1019
       ]
     },
     {
       "type": "Punctuator",
-      "value": "}",
+      "value": ".",
       "range": [
-        862,
-        863
+        1019,
+        1020
+      ]
+    },
+    {
+      "type": "Identifier",
+      "value": "on",
+      "range": [
+        1020,
+        1022
+      ]
+    },
+    {
+      "type": "Punctuator",
+      "value": "(",
+      "range": [
+        1022,
+        1023
+      ]
+    },
+    {
+      "type": "String",
+      "value": "'pointerdown'",
+      "range": [
+        1023,
+        1036
+      ]
+    },
+    {
+      "type": "Punctuator",
+      "value": ",",
+      "range": [
+        1036,
+        1037
+      ]
+    },
+    {
+      "type": "Identifier",
+      "value": "onClick",
+      "range": [
+        1038,
+        1045
+      ]
+    },
+    {
+      "type": "Punctuator",
+      "value": ")",
+      "range": [
+        1045,
+        1046
+      ]
+    },
+    {
+      "type": "Punctuator",
+      "value": ";",
+      "range": [
+        1046,
+        1047
+      ]
+    },
+    {
+      "type": "Identifier",
+      "value": "app",
+      "range": [
+        1188,
+        1191
+      ]
+    },
+    {
+      "type": "Punctuator",
+      "value": ".",
+      "range": [
+        1191,
+        1192
+      ]
+    },
+    {
+      "type": "Identifier",
+      "value": "stage",
+      "range": [
+        1192,
+        1197
+      ]
+    },
+    {
+      "type": "Punctuator",
+      "value": ".",
+      "range": [
+        1197,
+        1198
+      ]
+    },
+    {
+      "type": "Identifier",
+      "value": "addChild",
+      "range": [
+        1198,
+        1206
+      ]
+    },
+    {
+      "type": "Punctuator",
+      "value": "(",
+      "range": [
+        1206,
+        1207
+      ]
+    },
+    {
+      "type": "Identifier",
+      "value": "sprite",
+      "range": [
+        1207,
+        1213
+      ]
+    },
+    {
+      "type": "Punctuator",
+      "value": ")",
+      "range": [
+        1213,
+        1214
+      ]
+    },
+    {
+      "type": "Punctuator",
+      "value": ";",
+      "range": [
+        1214,
+        1215
+      ]
+    },
+    {
+      "type": "Keyword",
+      "value": "var",
+      "range": [
+        1218,
+        1221
+      ]
+    },
+    {
+      "type": "Identifier",
+      "value": "x",
+      "range": [
+        1222,
+        1223
+      ]
+    },
+    {
+      "type": "Punctuator",
+      "value": "=",
+      "range": [
+        1224,
+        1225
+      ]
+    },
+    {
+      "type": "Numeric",
+      "value": "2",
+      "range": [
+        1226,
+        1227
+      ]
+    },
+    {
+      "type": "Punctuator",
+      "value": ";",
+      "range": [
+        1227,
+        1228
+      ]
+    },
+    {
+      "type": "Identifier",
+      "value": "x",
+      "range": [
+        1230,
+        1231
+      ]
+    },
+    {
+      "type": "Punctuator",
+      "value": "=",
+      "range": [
+        1232,
+        1233
+      ]
+    },
+    {
+      "type": "Numeric",
+      "value": "3",
+      "range": [
+        1234,
+        1235
+      ]
+    },
+    {
+      "type": "Punctuator",
+      "value": ";",
+      "range": [
+        1235,
+        1236
       ]
     }
   ]
