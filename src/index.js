@@ -4,9 +4,9 @@ var escodegen = require('escodegen');
 
 var $ = require('jquery');
 
-var PIXI = require('pixi.js');
-
 var scriptSource = "src/example.js";
+
+var libSource = "src/lib.js";
 
 var modMap = {
   'PIXI': 'pixi.js',
@@ -423,6 +423,10 @@ var processNodes = {
     node.reasonml = "";
     return node;
   },
+  BogusTemplate: function(code, node) {
+    node.reasonml = "";
+    return node;
+  },
   NewExpression: function(code, node) {
     return applyExpression({
         type: 'new',
@@ -672,59 +676,103 @@ function declareExterns() {
   return externs;
 }
 
+function compile(data) {
+  var syntax =
+    esprima.parse(
+      data,
+      { raw: true, tokens: true, range: true, comment: true });
+
+  syntax = escodegen.attachComments(syntax, syntax.comments, syntax.tokens);
+
+  var syntax2 = rewrite(data, syntax, postProcessTypesAdd);
+
+  var syntaxForTypes = rewrite(data, syntax2, postProcessTypes);
+  var indent = '  ';
+  var quotes = 'auto';
+  var option = {
+      comment: true,
+      format: {
+          indent: {
+              style: indent
+          },
+          quotes: quotes
+      }
+  };
+
+  var code = escodegen.generate(syntaxForTypes, option);
+
+  /*
+  console.log(esprima.parse('V(0, {a: 2})["a"];'));
+  */
+
+  console.log(code);
+
+  astCode = data;
+
+  eval(code);
+  
+  var syntaxReasonML = rewrite(data, syntax2, postProcess);
+  
+  var decl = declareExterns().join('\n');
+
+  var types = declareTypes(syntaxReasonML.reasonml, decl);
+
+  var header = types.join('\n') + '\n' + decl;
+
+  var body = syntaxReasonML.reasonml;
+
+  var program = header + '\n' + body;
+
+  console.log(program);
+
+  return program;
+};
+
 $.get(
   scriptSource,
   function(data) {
-    var syntax =
-      esprima.parse(
-        data,
-        { raw: true, tokens: true, range: true, comment: true });
 
-    syntax = escodegen.attachComments(syntax, syntax.comments, syntax.tokens);
+    $('body').append('<h2>Introduction</h2>');
+    $('body').append('<p>Welcome to my very hacky JavaScript to ReasonML transpiler! ' +
+        'Paste your code in the <a href="#exampleCode">Example Code</a> ' +
+        'and the script will try to convert it into ReasonML externs and code. ' +
+        'WARNING: Example code will be evaled in a rewritten form to fill in the types. ' +
+        'Untriggered event handlers and functions will not be translated.' +
+        'Just some basics are supported for now, and it is sure to be buggy, ' + 
+        'but it might be more helpful than starting from scratch.</p>' + 
+        '<p>Make sure your example code does not clear the DOM, or you will lose the output boxes.</p>');
 
-    var syntax2 = rewrite(data, syntax, postProcessTypesAdd);
-
-    var syntaxForTypes = rewrite(data, syntax2, postProcessTypes);
+    $('body').append('<div><a name="exampleCode"><h2>Example code</h2></a>' +
+        '<textarea id="example" cols=80 rows=20></textarea></div>');
+    var textarea = $('#example');
+    textarea.val(data);
     
-    document.body.innerHTML = "<pre>" + JSON.stringify(syntaxForTypes, null, 2) + "</pre>";
-
-    var indent = '  ';
-    var quotes = 'auto';
-    var option = {
-        comment: true,
-        format: {
-            indent: {
-                style: indent
-            },
-            quotes: quotes
-        }
-    };
-
-    var code = escodegen.generate(syntaxForTypes, option);
-
-    /*
-    console.log(esprima.parse('V(0, {a: 2})["a"];'));
-    */
-
-    console.log(code);
-
-    astCode = data;
-
-    eval(code);
+    $('body').append('<div><a name="libraryCode"><h2>Library code</h2></a>' +
+        '<p>Paste extra library code here. ' +
+        'Will be evaluated for example code to use, but not attempted translated. ' +
+        '</p><textarea id="libsource" cols=80 rows=10></textarea></div>');
+    var libarea = $('#libsource');
+    var pixiURL = 'https://cdnjs.cloudflare.com/ajax/libs/pixi.js/4.7.1/pixi.js';
+    libarea.val('$.getScript("' + pixiURL + '", function(data) { $("#result").val("Library loaded"); });');
     
-    var syntaxReasonML = rewrite(data, syntax2, postProcess);
+    $('body').append('<h2>ReasonML Output</h2>');
     
-    var decl = declareExterns().join('\n');
+    $('body').append(
+      '<div><input id="loadlibs" type="button" value="Load Library"></input>' +
+      '<input id="transpile" type="button" value="Transpile"></input></div>');
+    
+    $('body').append('<textarea id="result" cols=80 rows=40></textarea>');
 
-    var types = declareTypes(syntaxReasonML.reasonml, decl);
+    $("#loadlibs").on("click", function() {
+      eval(libarea.val());
+    });
+    $("#transpile").on("click", function() {
+      $("#result").val('Waiting for document.ready...');
+      var result = compile(textarea.val());
+      $("#result").val(result);
+    });
 
-    var header = types.join('\n') + '\n' + decl;
-
-    var body = syntaxReasonML.reasonml;
-
-    var program = header + '\n' + body;
-
-    console.log(program);
-
+    $('body').append('<h2>Eval DOM Output</h2>');
   },
   "text");
+    
