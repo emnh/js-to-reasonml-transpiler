@@ -26,6 +26,7 @@ function onClick(evt) {
   /* PS: Make sure your event handlers are called at least once by script */
   sprite.scale.x *= 1.25;
   sprite.scale.y *= 1.25;
+  return 0;
 }
 
 /* PS: Make sure your event handlers are called at least once by script, like
