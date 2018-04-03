@@ -22,7 +22,7 @@ sprite.buttonMode = true;
 
 /* PS: Functions are not automatically lifted and must be in order for
  * generated script to use them correctly. */
-function onClick () {
+function onClick(evt) {
   /* PS: Make sure your event handlers are called at least once by script */
   sprite.scale.x *= 1.25;
   sprite.scale.y *= 1.25;
