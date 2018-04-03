@@ -44,7 +44,7 @@ function getType(obj) {
         typeName = obj.constructor.name;
       } catch (error) {
       }
-      if (typeName != undefined && typeName != "Object") {
+      if (typeName != undefined && typeName != "Object" && typeName != "Array") {
         obj[globalTypeName] = 'app' + typeName + 'T';
         reasonTypes[obj[globalTypeName]] = {};
         /* TODO: give type a body? */
@@ -192,33 +192,29 @@ function applyExpression(opts, code, node) {
     };
   };
   var callName = parts[parts.length - 1];
-  /*
-  console.log(createId);
-  */
-  var newCallee = '';
-  if (opts.type == 'new') {
-    newCallee = 'new';
+
+  var argTypes = [];
+  for (var i = 0; i < node.arguments.length; i++) {
+    var arg = node.arguments[i];
+    var argType = arg[globalTypeName];
+    argTypes.push(argType);
   }
-  var expr =
-    'reasonml.afterApply(externOpts, ' + newCallee + ' callee(...reasonml.beforeApply(externOpts, args)))';
-  var opts = {
-    externName: createId,
-    externTypeName: createId.replace(prefix, '') + 'T',
-    callName: callName,
-    modName: modName,
-    attributes: attributes
+  var retType = node[globalTypeName];
+
+  var externName = createId;
+  reasonExterns[externName] = {
+    attributes: attributes,
+    argTypes: argTypes,
+    retType: retType,
+    callName: callName
   };
-  expr = expr.replace(/externOpts/g, JSON.stringify(opts));
-  var newNode = getExpression(expr);
-  /*
-  console.log(newNode);
-  */
-  var callee = newNode.arguments[1];
-  callee.callee = node.callee;
-  var beforeNew = callee.arguments[0].argument;
-  beforeNew.arguments.splice(1, 1, ...node.arguments);
-  newNode.reasonml = createId + "(" + joinArgs(node) + ")";
-  return newNode;
+  if (modName !== null) {
+    reasonExterns[externName].attributes.push('[@bs.module "' + modName + '"]');
+  }
+
+  node.reasonml = createId + "(" + joinArgs(node) + ")";
+  return node;
+
 };
 
 function applyAssignment(opts, code, node) {
@@ -377,11 +373,15 @@ function checkNodePath(node, f) {
 
 function postProcessTypes(code, parentNode, node) {
   var directIgnores = {
+    'VariableDeclaration': {},
+    'FunctionDeclaration': {},
     'ExpressionStatement': {},
     'AssignmentExpression': {},
     'Program': {},
     'Property': {},
-    'Line': {}
+    'Line': {},
+    'Block': {},
+    'BlockStatement': {}
   };
   var checkIt = function(ignores, propName) {
     var f = function(node) {
@@ -390,14 +390,41 @@ function postProcessTypes(code, parentNode, node) {
     var g = function(node) {
       var parentNode = astNodeParents[node[globalIndexName]];
       if (parentNode != null) {
-        if (propName in parentNode && node === parentNode[propName]) {
-          return true;
+        if (propName in parentNode) {
+          if (node[globalIndexName] === parentNode[propName][globalIndexName]) {
+            return true;
+          }
+          if (Array.isArray(parentNode[propName])) {
+            for (var i = 0; i < parentNode[propName].length; i++) {
+              var pNode = parentNode[propName][i];
+              if (node[globalIndexName] === pNode[globalIndexName]) {
+                return true;
+              }
+            }
+          }
         }
       };
       return false;
     };
-    return checkNodePath(node, f) && !checkNodePath(node, g);
+    var done = false;
+    var h = function(node) {
+      /*
+      if (propName == 'body') {
+        console.log("done", done);
+      };
+      */
+      if (done) {
+        return false;
+      };
+      if (g(node)) {
+        done = true;
+        return false;
+      };
+      return f(node);
+    };
+    return checkNodePath(node, h);
   };
+  /*
   var checkNodeParentNew = function(node) {
     var parentNode = astNodeParents[node[globalIndexName]];
     if (parentNode != null) {
@@ -407,6 +434,7 @@ function postProcessTypes(code, parentNode, node) {
     }
     return false;
   };
+  */
   var checkNodeParent = function(node, parentType, prop) {
     var parentNode = astNodeParents[node[globalIndexName]];
     if (parentNode != null) {
@@ -427,44 +455,43 @@ function postProcessTypes(code, parentNode, node) {
   var checkNodeParentCallCallee = function(node) {
     return checkNodeParent(node, 'CallExpression', 'callee');
   };
-  var isVarDecl = checkIt({ 'VariableDeclaration': {} }, 'init');
+  var checkNodeParentFunctionId = function(node) {
+    return checkNodeParent(node, 'FunctionDeclaration', 'id');
+  };
+  var isVarDecl = checkIt({ 'VariableDeclarator': {} }, 'init');
   var isObjKey = checkIt({ 'Property': {} }, 'value');
   var isFunDecl = checkIt({ 'FunctionDeclaration': {} }, 'body');
-  var isNewCallee = checkIt({ 'NewExpression': {} }, 'arguments');
-  /*
-  var isAssign = checkIt({ 'AssignmentExpression': {} }, 'right');
-  */
+  var isNewCallee = checkIt({ 'NewExpression': {} }, 'arguments') && node.type != 'NewExpression';
   var isAssign = checkNodeParentAssign(node);
+  /*
+  console.log(
+    node.type,
+    getCode(code, node),
+    !(node.type in directIgnores),
+    !isVarDecl,
+    !isObjKey,
+    !isFunDecl,
+    !isNewCallee,
+    !isAssign,
+    !checkNodeParentMemberProperty(node),
+    !checkNodeParentCallCallee(node),
+    !checkNodeParentFunctionId(node));
+    */
   if (!(node.type in directIgnores) &&
       !isVarDecl &&
       !isObjKey &&
       !isFunDecl &&
       !isNewCallee &&
       !isAssign &&
-      !checkNodeParentNew(node) &&
       !checkNodeParentMemberProperty(node) &&
-      !checkNodeParentCallCallee(node)) {
-    /*
-    var expr = 'U(' + node.type + ',' + node[globalIndexName] + ', arg)';
-    */
+      !checkNodeParentCallCallee(node) &&
+      !checkNodeParentFunctionId(node)) {
     var expr = 'U(' + node[globalIndexName] + ', arg)';
     var newNode = getExpression(expr);
-    /*
-    node.computed = true;
-    */
     newNode.arguments[1] = node;
-    /*
-    console.log(node);
-    */
     newNode.isU = true;
     return newNode;
   }
-  /*
-  if (node.type == "MemberExpression") {
-    node.computed = true;
-    node.type == "Literal";
-  };
-  */
   return node;
 };
 
@@ -565,11 +592,15 @@ $.get(
 
     var code = escodegen.generate(syntaxForTypes, option);
 
+    /*
     console.log(esprima.parse('U(0, {a: 2})["a"];'));
+    */
 
     console.log(code);
 
     eval(code);
+    
+    var syntaxReasonML = rewrite(data, syntax2, postProcess);
 
     var types = declareTypes();
 
@@ -577,7 +608,7 @@ $.get(
 
     var header = types.join('\n') + '\n' + decl.join('\n');
 
-    var body = syntaxForTypes.reasonml;
+    var body = syntaxReasonML.reasonml;
 
     var program = header + '\n' + body;
 
