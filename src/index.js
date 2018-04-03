@@ -16,6 +16,7 @@ var modMap = {
 /* Begin ReasonML runtime code generation helpers */
 var globalId = 0;
 var globalIdName = '_ReasonMLId';
+var globalIndexName = '_ReasonMLIndex';
 var globalTypeName = '_ReasonMLType';
 
 function getType(obj) {
@@ -38,7 +39,11 @@ function getType(obj) {
         return 'Js.Nullable.t(unknownT);'
         break;
       }
-      var typeName = obj.constructor.name;
+      var typeName = undefined;
+      try {
+        typeName = obj.constructor.name;
+      } catch (error) {
+      }
       if (typeName != undefined && typeName != "Object") {
         obj[globalTypeName] = 'app' + typeName + 'T';
         reasonTypes[obj[globalTypeName]] = {};
@@ -94,7 +99,8 @@ var reasonTypes = {
 };
 var reasonModules = {};
 var reasonExterns = {};
-var ast;
+var astNodes = [];
+var astNodeParents = {};
 
 var reasonml = {
   beforeApply: function() {
@@ -343,7 +349,7 @@ var processNodes = {
   }
 };
 
-function postProcessTypes(code, node) {
+function postProcess(code, parentNode, node) {
   if (node.type in processNodes) {
     var process = processNodes[node.type];
     return process(code, node);
@@ -351,7 +357,125 @@ function postProcessTypes(code, node) {
   return node;
 };
 
-function walk(code, node, postProcess) {
+function U(index, arg) {
+  astNodes[index][globalTypeName] = getType(arg);
+  return arg;
+};
+
+function checkNodePath(node, f) {
+  while (astNodeParents[node[globalIndexName]] != null) {
+    if (f(node)) {
+      return true;
+    };
+    node = astNodeParents[node[globalIndexName]];
+  }
+  if (f(node)) {
+    return true;
+  };
+  return false;
+}
+
+function postProcessTypes(code, parentNode, node) {
+  var directIgnores = {
+    'ExpressionStatement': {},
+    'AssignmentExpression': {},
+    'Program': {},
+    'Property': {},
+    'Line': {}
+  };
+  var checkIt = function(ignores, propName) {
+    var f = function(node) {
+      return node.type in ignores;
+    };
+    var g = function(node) {
+      var parentNode = astNodeParents[node[globalIndexName]];
+      if (parentNode != null) {
+        if (propName in parentNode && node === parentNode[propName]) {
+          return true;
+        }
+      };
+      return false;
+    };
+    return checkNodePath(node, f) && !checkNodePath(node, g);
+  };
+  var checkNodeParentNew = function(node) {
+    var parentNode = astNodeParents[node[globalIndexName]];
+    if (parentNode != null) {
+      if (parentNode.type == 'NewExpression') {
+        return true;
+      };
+    }
+    return false;
+  };
+  var checkNodeParent = function(node, parentType, prop) {
+    var parentNode = astNodeParents[node[globalIndexName]];
+    if (parentNode != null) {
+      if (parentNode.type == parentType) {
+        if (prop in parentNode && parentNode[prop][globalIndexName] === node[globalIndexName]) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+  var checkNodeParentAssign = function(node) {
+    return checkNodeParent(node, 'AssignmentExpression', 'left');
+  };
+  var checkNodeParentMemberProperty = function(node) {
+    return checkNodeParent(node, 'MemberExpression', 'property');
+  };
+  var checkNodeParentCallCallee = function(node) {
+    return checkNodeParent(node, 'CallExpression', 'callee');
+  };
+  var isVarDecl = checkIt({ 'VariableDeclaration': {} }, 'init');
+  var isObjKey = checkIt({ 'Property': {} }, 'value');
+  var isFunDecl = checkIt({ 'FunctionDeclaration': {} }, 'body');
+  var isNewCallee = checkIt({ 'NewExpression': {} }, 'arguments');
+  /*
+  var isAssign = checkIt({ 'AssignmentExpression': {} }, 'right');
+  */
+  var isAssign = checkNodeParentAssign(node);
+  if (!(node.type in directIgnores) &&
+      !isVarDecl &&
+      !isObjKey &&
+      !isFunDecl &&
+      !isNewCallee &&
+      !isAssign &&
+      !checkNodeParentNew(node) &&
+      !checkNodeParentMemberProperty(node) &&
+      !checkNodeParentCallCallee(node)) {
+    /*
+    var expr = 'U(' + node.type + ',' + node[globalIndexName] + ', arg)';
+    */
+    var expr = 'U(' + node[globalIndexName] + ', arg)';
+    var newNode = getExpression(expr);
+    /*
+    node.computed = true;
+    */
+    newNode.arguments[1] = node;
+    /*
+    console.log(node);
+    */
+    newNode.isU = true;
+    return newNode;
+  }
+  /*
+  if (node.type == "MemberExpression") {
+    node.computed = true;
+    node.type == "Literal";
+  };
+  */
+  return node;
+};
+
+function postProcessTypesAdd(code, parentNode, node) {
+  node[globalIndexName] = astNodes.length;
+  astNodes.push(node);
+  astNodeParents[node[globalIndexName]] = parentNode;
+  return node;
+};
+
+function walk(code, parentNode, node, postProcess) {
   if (node.hasOwnProperty('type')) {
     var newNode = {};
     /*
@@ -363,14 +487,14 @@ function walk(code, node, postProcess) {
       if (Array.isArray(value)) {
         newValue = [];
         for (var i = 0; i < value.length; i++) {
-          newValue.push(walk(code, value[i], postProcess));
+          newValue.push(walk(code, newNode, value[i], postProcess));
         }
       } else {
-        newValue = walk(code, value, postProcess);
+        newValue = walk(code, newNode, value, postProcess);
       }
       newNode[prop] = newValue;
     }
-    node = postProcess(code, newNode);
+    node = postProcess(code, parentNode, newNode);
     /*
     console.log(node);
     */
@@ -379,7 +503,7 @@ function walk(code, node, postProcess) {
 };
 
 function rewrite(code, ast, postProcess) {
-  return walk(code, ast, postProcess);
+  return walk(code, null, ast, postProcess);
 };
 
 function declareTypes() {
@@ -421,9 +545,11 @@ $.get(
 
     syntax = escodegen.attachComments(syntax, syntax.comments, syntax.tokens);
 
-    document.body.innerHTML = "<pre>" + JSON.stringify(syntax, null, 2) + "</pre>";
+    var syntax2 = rewrite(data, syntax, postProcessTypesAdd);
 
-    var syntaxForTypes = rewrite(data, syntax, postProcessTypes);
+    var syntaxForTypes = rewrite(data, syntax2, postProcessTypes);
+    
+    document.body.innerHTML = "<pre>" + JSON.stringify(syntaxForTypes, null, 2) + "</pre>";
 
     var indent = '  ';
     var quotes = 'auto';
@@ -438,6 +564,8 @@ $.get(
     };
 
     var code = escodegen.generate(syntaxForTypes, option);
+
+    console.log(esprima.parse('U(0, {a: 2})["a"];'));
 
     console.log(code);
 
@@ -454,5 +582,6 @@ $.get(
     var program = header + '\n' + body;
 
     console.log(program);
+
   },
   "text");
