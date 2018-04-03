@@ -20,6 +20,18 @@ sprite.interactive = true;
 // Shows hand cursor
 sprite.buttonMode = true;
 
+/* PS: Functions are not automatically lifted and must be in order for
+ * generated script to use them correctly. */
+function onClick () {
+  /* PS: Make sure your event handlers are called at least once by script */
+  sprite.scale.x *= 1.25;
+  sprite.scale.y *= 1.25;
+}
+
+/* PS: Make sure your event handlers are called at least once by script, like
+ * in the following line: */
+onClick();
+
 // Pointers normalize touch and mouse
 sprite.on('pointerdown', onClick);
 
@@ -29,12 +41,6 @@ sprite.on('pointerdown', onClick);
 
 app.stage.addChild(sprite);
 
-function onClick () {
-    sprite.scale.x *= 1.25;
-    sprite.scale.y *= 1.25;
-}
-
-onClick();
 
 var x = 2;
 
