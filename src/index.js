@@ -35,10 +35,21 @@ function getType(obj, rootNode, marker) {
   if (marker === undefined) {
     marker = globalId++;
   }
-  var byUsage = function(prefix) {
-    var usageT = 'usage' + getExternName(astCode, rootNode) + 'T';
+  var byUsage = function(prefix, isFun) {
+    var usageT = prefix + getExternName(astCode, rootNode) + 'T';
     obj[globalTypeName] = usageT;
     reasonTypes[obj[globalTypeName]] = {};
+    if (isFun) {
+      var usageArgT = prefix + getExternName(astCode, rootNode) + 'ArgT';
+      var usageRetT = prefix + getExternName(astCode, rootNode) + 'RetT';
+      reasonTypes[obj[globalTypeName]] = {
+        decl: usageArgT + ' => ' + usageRetT + ' and ' + usageArgT + ' and ' + usageRetT
+      };
+      /*
+      reasonTypes[usageArgT] = {};
+      reasonTypes[usageRetT] = {};
+      */
+    }
     return usageT;
   };
   switch (typeof(obj)) {
@@ -120,7 +131,7 @@ function getType(obj, rootNode, marker) {
           /*
           return 'tooBigObjectT';
           */
-          return byUsage('usage');
+          return byUsage('usage', false);
         };
       }
       break;
@@ -133,7 +144,7 @@ function getType(obj, rootNode, marker) {
         return 'unit';
       };
       if (isFunction(obj)) {
-        return byUsage('usageFun');
+        return byUsage('usageFun', true);
       };
       return 'unknownT';
       break;
@@ -340,6 +351,14 @@ var processNodes = {
     return node;
   },
   CallExpression: function(code, node) {
+    var funName = 'usageFun' + getExternName(code, node.callee) + 'T';
+    var funArg = 'usageFun' + getExternName(code, node.callee) + 'ArgT';
+    var funRet = 'usageFun' + getExternName(code, node.callee) + 'RetT';
+    /* Resolve return type of local functions */
+    if (funName in reasonTypes) {
+      reasonTypes[funName].decl =
+        reasonTypes[funName].decl.replace(funRet, node[globalTypeName]);
+    }
     return applyExpression({
         type: 'call',
         attributes: ['[@bs.send]']
@@ -448,6 +467,10 @@ var processNodes = {
     node.reasonml = '{\n' + rml.join('\n') + '\n' + '};\n';
     return node;
   },
+  ReturnStatement: function(code, node) {
+    node.reasonml = node.argument.reasonml;
+    return node;
+  },
   BogusTemplate: function(code, node) {
     node.reasonml = "";
     return node;
@@ -499,7 +522,8 @@ function postProcessTypes(code, parentNode, node) {
     'Property': {},
     'Line': {},
     'Block': {},
-    'BlockStatement': {}
+    'BlockStatement': {},
+    'ReturnStatement': {}
   };
   var checkIt = function(ignores, propName) {
     var f = function(node) {
@@ -655,7 +679,7 @@ function rewrite(code, ast, postProcess) {
   return walk(code, null, ast, postProcess);
 };
 
-function declareTypes(body, externs) {
+function declareTypes(body, externs, firstGenTypes) {
   var types = [];
   for (var name in reasonTypes) {
     var value = reasonTypes[name];
@@ -665,7 +689,7 @@ function declareTypes(body, externs) {
       value = '';
     };
     /* Only list types that are used */
-    if (body.includes(name) || externs.includes(name)) {
+    if (body.includes(name) || externs.includes(name) || firstGenTypes.includes(name)) {
       if (value != '') {
         s = 'type ' + name + ' = ' + value + ';';
       } else {
@@ -748,7 +772,11 @@ function compile(data) {
   
   var decl = declareExterns().join('\n');
 
-  var types = declareTypes(syntaxReasonML.reasonml, decl);
+  var types = declareTypes(syntaxReasonML.reasonml, decl, '');
+  
+  /*
+  var types2 = declareTypes(syntaxReasonML.reasonml, decl, types.join('\n'));
+  */
 
   var header = types.join('\n') + '\n' + decl;
 
@@ -773,7 +801,9 @@ $('document').ready(function() {
     function(data) {
 
       $('body').append('<h2>Introduction</h2>');
-      $('body').append('<p>Welcome to my very hacky JavaScript to ReasonML transpiler! ' +
+      $('body').append('<p>Welcome to my very hacky JavaScript to ReasonML transpiler ' +
+          '(<a href="https://github.com/emnh/js-to-reasonml-transpiler">Project on GitHub</a>)! ' +
+          'You might also check out the alternative <a href="https://github.com/chenglou/jeason">Jeason</a>. ' +
           'Paste your code in the <a href="#exampleCode">Code to Transpile</a> ' +
           'and the script will try to convert it into ReasonML externs and code. ' +
           'WARNING: Example code will be evaled in a rewritten form to fill in the types. ' +
