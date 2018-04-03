@@ -11894,6 +11894,8 @@ $('document').ready(function() {
       $('body').append('<h2>Introduction</h2>');
       $('body').append('<p>Welcome to my very hacky JavaScript to ReasonML transpiler ' +
           '(<a href="https://github.com/emnh/js-to-reasonml-transpiler">Project on GitHub</a>)! ' +
+          'If you do not see any code below, try reloading the page ' +
+          '(bug due to race conditions resolved by cached files I suppose).' +
           'You might also check out the alternative <a href="https://github.com/chenglou/jeason">Jeason</a>. ' +
           'Paste your code in the <a href="#exampleCode">Code to Transpile</a> ' +
           'and the script will try to convert it into ReasonML externs and code. ' +
