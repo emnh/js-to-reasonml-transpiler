@@ -161,6 +161,14 @@ function getExpression(s) {
   return newNode;
 };
 
+function joinParams(node) {
+  var reasonmlArgs = [];
+  for (var i = 0; i < node.params.length; i++) {
+    reasonmlArgs.push(node.params[i].reasonml);
+  }
+  return reasonmlArgs.join(', ');
+};
+
 function joinArgs(node) {
   var reasonmlArgs = [];
   for (var i = 0; i < node.arguments.length; i++) {
@@ -428,7 +436,16 @@ var processNodes = {
     return node;
   },
   FunctionDeclaration: function(code, node) {
-    node.reasonml = "";
+    node.reasonml = 'let ' + node.id.reasonml + ' = (' + joinParams(node) + ') => ' + node.body.reasonml;
+    return node;
+  },
+  BlockStatement: function(code, node) {
+    var rml = [];
+    for (var i = 0; i < node.body.length; i++) {
+      var child = node.body[i];
+      rml.push(child.reasonml);
+    }
+    node.reasonml = '{\n' + rml.join('\n') + '\n' + '};\n';
     return node;
   },
   BogusTemplate: function(code, node) {
@@ -525,23 +542,22 @@ function postProcessTypes(code, parentNode, node) {
     };
     return checkNodePath(node, h);
   };
-  /*
-  var checkNodeParentNew = function(node) {
-    var parentNode = astNodeParents[node[globalIndexName]];
-    if (parentNode != null) {
-      if (parentNode.type == 'NewExpression') {
-        return true;
-      };
-    }
-    return false;
-  };
-  */
   var checkNodeParent = function(node, parentType, prop) {
     var parentNode = astNodeParents[node[globalIndexName]];
     if (parentNode != null) {
       if (parentNode.type == parentType) {
-        if (prop in parentNode && parentNode[prop][globalIndexName] === node[globalIndexName]) {
-          return true;
+        if (prop in parentNode) {
+          if (parentNode[prop][globalIndexName] === node[globalIndexName]) {
+            return true;
+          }
+          if (Array.isArray(parentNode[prop])) {
+            for (var i = 0; i < parentNode[prop].length; i++) {
+              var pNode = parentNode[prop][i];
+              if (node[globalIndexName] === pNode[globalIndexName]) {
+                return true;
+              }
+            }
+          }
         }
       }
     }
@@ -558,6 +574,9 @@ function postProcessTypes(code, parentNode, node) {
   };
   var checkNodeParentFunctionId = function(node) {
     return checkNodeParent(node, 'FunctionDeclaration', 'id');
+  };
+  var checkNodeParentFunctionArguments = function(node) {
+    return checkNodeParent(node, 'FunctionDeclaration', 'params');
   };
   var isVarDecl = checkIt({ 'VariableDeclarator': {} }, 'init');
   var isObjKey = checkIt({ 'Property': {} }, 'value');
@@ -576,7 +595,8 @@ function postProcessTypes(code, parentNode, node) {
     !isAssign,
     !checkNodeParentMemberProperty(node),
     !checkNodeParentCallCallee(node),
-    !checkNodeParentFunctionId(node));
+    !checkNodeParentFunctionId(node)
+    !checkNodeParentFunctionArguments(node));
     */
   if (!(node.type in directIgnores) &&
       !isVarDecl &&
@@ -586,7 +606,8 @@ function postProcessTypes(code, parentNode, node) {
       !isAssign &&
       !checkNodeParentMemberProperty(node) &&
       !checkNodeParentCallCallee(node) &&
-      !checkNodeParentFunctionId(node)) {
+      !checkNodeParentFunctionId(node) &&
+      !checkNodeParentFunctionArguments(node)) {
     var expr = 'U(' + node[globalIndexName] + ', arg)';
     var newNode = getExpression(expr);
     newNode.arguments[1] = node;
@@ -691,6 +712,10 @@ function compile(data) {
       { raw: true, tokens: true, range: true, comment: true });
 
   syntax = escodegen.attachComments(syntax, syntax.comments, syntax.tokens);
+
+  /*
+  console.log(JSON.stringify(syntax, null, 2));
+   */
 
   var syntax2 = rewrite(data, syntax, postProcessTypesAdd);
 
