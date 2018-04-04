@@ -2,11 +2,17 @@
   "name": "js-to-reasonml-transpiler",
   "version": "0.1.0",
   "scripts": {
+    "build": "bsb -make-world",
+    "bsbwatch": "bsb -make-world -w",
+    "clean": "bsb -clean-world",
     "webpack": "webpack",
-    "dev": "webpack-dev-server --hot"
+    "dev": "webpack-dev-server --hot",
+    "start": "concurrently --raw 'npm run bsbwatch' 'npm run dev'"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "BuckleScript"
+  ],
+  "author": "Eivind Magnus Hvidevold",
   "license": "MIT",
   "devDependencies": {
     "webpack": "^3.11.0",
