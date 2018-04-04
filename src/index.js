@@ -13,7 +13,7 @@ require('codemirror/mode/mllike/mllike');
 
 var $ = require('jquery');
 
-var scriptSource = "examples/example_001.js";
+var scriptSource = "examples/example_002.js";
 
 var libSource = "src/lib.js";
 
@@ -25,41 +25,64 @@ var modMap = {
 var globalsMap = {
   'document': {},
   'window': {},
-  'console': {}
+  'console': {},
+  'Math': {}
 };
 
-/* Begin ReasonML runtime code generation helpers */
+var state;
+
 var statementTerminator = ';\n';
-var globalId = 0;
 var globalIdName = '_ReasonMLId';
 var globalIndexName = '_ReasonMLIndex';
 var globalTypeName = '_ReasonMLType';
-var smallObjectCounter = 0;
-var anonymousFunctionCounter = 0;
+var globalTypeDecl = '_ReasonMLTypeDecl';
+
+function initState(code) {
+  return {
+    smallObjectCounter: 0,
+    anonymousFunctionCounter: 0,
+    reasonTypes: {
+      'unknownT': {},
+      "unknownFunT('a, 'b)": { decl: "'a => 'b" },
+      'recursiveT': {},
+      'tooBigObjectT': {}
+    },
+    reasonExterns: {},
+    astCode: code,
+    astNodes: [],
+    astNodeParents: {},
+    astNodesDebug: {}
+  };
+};
+
+var globalId = 0;
 
 function getType(obj, rootNode, marker) {
   if (marker === undefined) {
     marker = globalId++;
   }
   var byUsage = function(prefix, isFun) {
-    var externName = getExternName(astCode, rootNode);
+    var externName = getExternName(state.astCode, rootNode);
     if (rootNode.type == 'FunctionExpression') {
-      externName = 'Anon' + anonymousFunctionCounter.toString();
+      externName = 'Anon' + state.anonymousFunctionCounter.toString();
+      state.anonymousFunctionCounter++;
     }
     var usageT = prefix + externName + 'T';
-    obj[globalTypeName] = usageT;
-    reasonTypes[obj[globalTypeName]] = {};
+    state.reasonTypes[usageT] = {};
+    console.log("usageT", usageT);
     if (isFun) {
       var usageArgT = prefix + externName + 'ArgT';
       var usageRetT = prefix + externName + 'RetT';
-      reasonTypes[obj[globalTypeName]] = {
+      state.reasonTypes[usageT] = {
         decl: usageArgT + ' => ' + usageRetT + ' and ' + usageArgT + ' and ' + usageRetT
       };
       /*
-      reasonTypes[usageArgT] = {};
-      reasonTypes[usageRetT] = {};
+      state.reasonTypes[usageArgT] = {};
+      state.reasonTypes[usageRetT] = {};
       */
     }
+    obj[globalTypeName] = usageT;
+    obj[globalTypeDecl] = state.reasonTypes[obj[globalTypeName]];
     return usageT;
   };
   switch (typeof(obj)) {
@@ -88,10 +111,12 @@ function getType(obj, rootNode, marker) {
       }
       if (typeName != undefined && typeName != "Object" && typeName != "Array") {
         obj[globalTypeName] = 'app' + typeName + 'T';
-        reasonTypes[obj[globalTypeName]] = {};
+        obj[globalTypeDecl] = {};
+        state.reasonTypes[obj[globalTypeName]] = {};
         /* TODO: give type a body? */
       }
       if (globalTypeName in obj) {
+        state.reasonTypes[obj[globalTypeName]] = obj[globalTypeDecl];
         return obj[globalTypeName];
       };
       if (globalIdName in obj && globalIdName == marker) {
@@ -100,9 +125,9 @@ function getType(obj, rootNode, marker) {
       obj[globalIdName] = marker;
       if (Array.isArray(obj)) {
         if (obj.length > 0) {
-          var t = getType(obj[0], rootNode);
+          var t = getType(obj[0], rootNode, marker);
           for (var i = 0; i < obj.length; i++) {
-            if (t != getType(obj[i]), rootNode) {
+            if (t != getType(obj[i]), rootNode, marker) {
               return 'array(unknownT)';
             }
           }
@@ -122,7 +147,7 @@ function getType(obj, rootNode, marker) {
             continue;
           };
           if ('hasOwnProperty' in obj && obj.hasOwnProperty(prop) && !isFunction(obj[prop])) {
-            childTypes.push('"' + prop + '": ' + getType(obj[prop], rootNode));
+            childTypes.push('"' + prop + '": ' + getType(obj[prop], rootNode, marker));
             propCount++;
             if (propCount > propLimit) {
               break;
@@ -132,10 +157,10 @@ function getType(obj, rootNode, marker) {
         var t = '{. ';
         t += childTypes.join(', ');
         t += '}';
-        if (propCount <= propLimit) {
-          var retval = 'smallObject' + smallObjectCounter.toString() + 'T';
-          reasonTypes[retval] = { decl: t };
-          smallObjectCounter++;
+        if (propCount <= propLimit && propCount > 0) {
+          var retval = 'smallObject' + state.smallObjectCounter.toString() + 'T';
+          state.reasonTypes[retval] = { decl: t };
+          state.smallObjectCounter++;
           return retval;
         } else {
           /*
@@ -160,21 +185,6 @@ function getType(obj, rootNode, marker) {
       break;
   };
 };
-
-var reasonCode = [];
-var reasonTypes = {
-  'unknownT': {},
-  "unknownFunT('a, 'b)": { decl: "'a => 'b" },
-  'recursiveT': {},
-  'tooBigObjectT': {}
-};
-var reasonModules = {};
-var reasonExterns = {};
-var astCode = '';
-var astNodes = [];
-var astNodeParents = {};
-var astNodesDebug = {};
-/* End ReasonML runtime code generation helpers */
 
 function getExpression(s) {
   var newNode = esprima.parse(s);
@@ -301,7 +311,7 @@ function applyExpression(opts, code, node) {
   var retType = node[globalTypeName];
 
   var externName = createId;
-  reasonExterns[externName] = {
+  state.reasonExterns[externName] = {
     isNotExtern: isNotExtern,
     attributes: attributes,
     argTypes: argTypes,
@@ -309,7 +319,7 @@ function applyExpression(opts, code, node) {
     callName: callName
   };
   if (modName !== null && opts.type == 'new') {
-    reasonExterns[externName].attributes.push('[@bs.module "' + modResolved + '"]');
+    state.reasonExterns[externName].attributes.push('[@bs.module "' + modResolved + '"]');
   }
   node.reasonml = createId + "(" + objArg + reargs + ")";
   return node;
@@ -327,15 +337,31 @@ var processNodes = {
   },
   VariableDeclaration: function(code, node) {
     var rml = [];
+    var rmla = [];
+    var parentNode = state.astNodeParents[node[globalIndexName]];
+    var mutable = parentNode.type == 'ForStatement' && parentNode.init[globalIndexName] == node[globalIndexName];
     for (var i = 0; i < node.declarations.length; i++) {
       var name = node.declarations[i].id.name;
-      var s = 'let ' + name + ' = ' + node.declarations[i].init.reasonml;
+      var value = node.declarations[i].init.reasonml;
+
+      var s2 = 'let ' + name + ' = ' + name + 'Ref^';
+      if (!s2.trim().endsWith(';')) {
+        s2 += statementTerminator;
+      }
+      rmla.push(s2);
+
+      if (mutable) {
+        name = name + 'Ref';
+        value = 'ref(' + value + ')';
+      }
+      var s = 'let ' + name + ' = ' + value;
       if (!s.trim().endsWith(';')) {
         s += statementTerminator;
       }
       rml.push(s);
     }
     node.reasonml = rml.join('\n');
+    node.reasonmlAlias = rmla.join('\n');
     return node;
   },
   Literal: function(code, node) {
@@ -377,12 +403,12 @@ var processNodes = {
     var funArg = 'usageFun' + getExternName(code, node.callee) + 'ArgT';
     var funRet = 'usageFun' + getExternName(code, node.callee) + 'RetT';
     /* Resolve return type of local functions */
-    if (funName in reasonTypes) {
+    if (funName in state.reasonTypes) {
       var argTypes = []
       addArgTypes(node, argTypes);
       argTypes = '(' + argTypes.join(', ') + ')';
-      reasonTypes[funName].decl =
-        reasonTypes[funName]
+      state.reasonTypes[funName].decl =
+        state.reasonTypes[funName]
           .decl
           .replace(funRet, node[globalTypeName])
           .replace(funArg, argTypes);
@@ -400,7 +426,7 @@ var processNodes = {
     }
   },
   MemberExpression: function(code, node) {
-    var parentNode = astNodeParents[node[globalIndexName]];
+    var parentNode = state.astNodeParents[node[globalIndexName]];
     var useRight = null;
     if (parentNode.type == 'AssignmentExpression' &&
         parentNode.left[globalIndexName] == node[globalIndexName]) {
@@ -410,7 +436,7 @@ var processNodes = {
       var argTypes = [node.object[globalTypeName], parentNode.right[globalTypeName]];
       var retType = 'unit';
       var callName = node.property.name;
-      reasonExterns[externName] = {
+      state.reasonExterns[externName] = {
         attributes: attributes,
         argTypes: argTypes,
         retType: retType,
@@ -440,14 +466,14 @@ var processNodes = {
       modName = null;
     }
     var callName = node.property.name;
-    reasonExterns[externName] = {
+    state.reasonExterns[externName] = {
       attributes: attributes,
       argTypes: argTypes,
       retType: retType,
       callName: callName
     };
     if (modName !== null) {
-      reasonExterns[externName].noargs = true;
+      state.reasonExterns[externName].noargs = true;
       attributes.push('[@bs.module "' + modResolved + '"]');
       if (parts.length > 2) {
         for (var i = 1; i < parts.length - 1; i++) {
@@ -462,26 +488,12 @@ var processNodes = {
   },
   Identifier: function(code, node) {
     if (node.name in globalsMap) {
-      var externName = node.name;
+      var externName = node.name.toLowerCase();
       var attributes = ['[@bs.val]'];
       var argTypes = ['unit'];
       var retType = node[globalTypeName];
       var callName = node.name;
-      reasonExterns[externName] = {
-        noargs: true,
-        attributes: attributes,
-        argTypes: argTypes,
-        retType: retType,
-        callName: callName
-      };
-      node.reasonml = node.name;
-    } else if (node.name in modMap) {
-      var externName = 'mod' + node.name;
-      var attributes = ['[@bs.val]', '[@bs.module "' + modMap[node.name] + '"]'];
-      var argTypes = ['unit'];
-      var retType = node[globalTypeName];
-      var callName = node.name;
-      reasonExterns[externName] = {
+      state.reasonExterns[externName] = {
         noargs: true,
         attributes: attributes,
         argTypes: argTypes,
@@ -489,8 +501,33 @@ var processNodes = {
         callName: callName
       };
       node.reasonml = externName;
+    /*
+    } else if (node.name in modMap) {
+      var externName = 'mod' + node.name;
+      var attributes = ['[@bs.val]', '[@bs.module "' + modMap[node.name] + '"]'];
+      var argTypes = ['unit'];
+      var retType = node[globalTypeName];
+      var callName = node.name;
+      state.reasonExterns[externName] = {
+        noargs: true,
+        attributes: attributes,
+        argTypes: argTypes,
+        retType: retType,
+        callName: callName
+      };
+      node.reasonml = externName;
+    */
     } else {
-      node.reasonml = node.name;
+      var parentNode = state.astNodeParents[node[globalIndexName]];
+      var parentNode2 = state.astNodeParents[parentNode[globalIndexName]];
+      var mutable =
+        parentNode2.type == 'ForStatement' && 
+        parentNode2.test[globalIndexName] == parentNode[globalIndexName];
+      if (mutable) {
+        node.reasonml = node.name + 'Ref^';
+      } else {
+        node.reasonml = node.name;
+      }
     };
     return node;
   },
@@ -532,10 +569,21 @@ var processNodes = {
   },
   BinaryExpression: function(code, node) {
     var operator = node.operator;
+    if (operator == '%') {
+      operator = 'mod';
+    }
+    var left = node.left.reasonml;
+    var right = node.right.reasonml;
     if (node[globalTypeName] == 'float') {
       operator = operator + '.';
+      if (node.left[globalTypeName] == 'int') {
+        left = 'float_of_int(' + left + ')';
+      }
+      if (node.right[globalTypeName] == 'int') {
+        right = 'float_of_int(' + right + ')';
+      }
     }
-    node.reasonml = node.left.reasonml + ' ' + operator + ' ' + node.right.reasonml;
+    node.reasonml = '(' + left + ' ' + operator + ' ' + right + ')';
     return node;
   },
   FunctionDeclaration: function(code, node) {
@@ -575,8 +623,31 @@ var processNodes = {
     node.reasonml = "/* Shouldn't show. Comments processed elsewhere.*/";
     return node;
   },
+  UpdateExpression: function(code, node) {
+    if (node.prefix == true) {
+      throw(new Error('prefix operator not implemented'));
+    }
+    if (node.operator == '++') {
+      node.reasonml = '' + node.argument.reasonml + 'Ref := ' + node.argument.reasonml + ' + 1';
+    } else if (node.operator == '--') {
+      node.reasonml = '' + node.argument.reasonml + 'Ref := ' + node.argument.reasonml + ' - 1';
+    } else {
+      throw(new Error('suffix operator not implemented: ' + node.operator));
+    }
+    return node;
+  },
+  ForStatement: function(code, node) {
+    node.reasonml = 
+      node.init.reasonml +
+      'while (' + node.test.reasonml + ') {\n' +
+      node.init.reasonmlAlias +
+      node.body.reasonml + '\n' +
+      node.update.reasonml + statementTerminator +
+      '}' + statementTerminator;
+    return node;
+  },
   BogusTemplate: function(code, node) {
-    node.reasonml = "";
+    node.reasonml = '';
     return node;
   },
   NewExpression: function(code, node) {
@@ -609,17 +680,27 @@ function postProcess(code, parentNode, node) {
 };
 
 function U(index, arg) {
-  astNodes[index][globalTypeName] = getType(arg, astNodes[index]);
-  astNodesDebug[index] = arg;
+  state.astNodes[index][globalTypeName] = getType(arg, state.astNodes[index]);
+  state.astNodesDebug[index] = arg;
   return arg;
 };
 
+function getNodePath(node, f) {
+  var path = [];
+  while (state.astNodeParents[node[globalIndexName]] != null) {
+    path.push(node);
+    node = state.astNodeParents[node[globalIndexName]];
+  }
+  path.push(node);
+  return path.reverse();
+}
+
 function checkNodePath(node, f) {
-  while (astNodeParents[node[globalIndexName]] != null) {
+  while (state.astNodeParents[node[globalIndexName]] != null) {
     if (f(node)) {
       return true;
     };
-    node = astNodeParents[node[globalIndexName]];
+    node = state.astNodeParents[node[globalIndexName]];
   }
   if (f(node)) {
     return true;
@@ -638,14 +719,15 @@ function postProcessTypes(code, parentNode, node) {
     'Line': {},
     'Block': {},
     'BlockStatement': {},
-    'ReturnStatement': {}
+    'ReturnStatement': {},
+    'ForStatement': {}
   };
   var checkIt = function(ignores, propName) {
     var f = function(node) {
       return node.type in ignores;
     };
     var g = function(node) {
-      var parentNode = astNodeParents[node[globalIndexName]];
+      var parentNode = state.astNodeParents[node[globalIndexName]];
       if (parentNode != null) {
         if (propName in parentNode) {
           if (node[globalIndexName] === parentNode[propName][globalIndexName]) {
@@ -682,7 +764,7 @@ function postProcessTypes(code, parentNode, node) {
     return checkNodePath(node, h);
   };
   var checkNodeParent = function(node, parentType, prop) {
-    var parentNode = astNodeParents[node[globalIndexName]];
+    var parentNode = state.astNodeParents[node[globalIndexName]];
     if (parentNode != null) {
       if (parentNode.type == parentType) {
         if (prop in parentNode) {
@@ -719,6 +801,9 @@ function postProcessTypes(code, parentNode, node) {
     var b = checkNodeParent(node, 'FunctionExpression', 'params');
     return a || b;
   };
+  var checkNodeParentUpdate = function(node) {
+    return checkNodeParent(node, 'UpdateExpression', 'argument');
+  };
   var isVarDecl = checkIt({ 'VariableDeclarator': {} }, 'init');
   var isObjKey = checkIt({ 'Property': {} }, 'value');
   var isFunDecl = checkIt({ 'FunctionDeclaration': {} }, 'body');
@@ -736,8 +821,9 @@ function postProcessTypes(code, parentNode, node) {
     !isAssign,
     !checkNodeParentMemberProperty(node),
     !checkNodeParentCallCallee(node),
-    !checkNodeParentFunctionId(node)
-    !checkNodeParentFunctionArguments(node));
+    !checkNodeParentFunctionId(node),
+    !checkNodeParentFunctionArguments(node),
+    !checkNodeParentUpdate(node));
     */
   if (!(node.type in directIgnores) &&
       !isVarDecl &&
@@ -748,7 +834,8 @@ function postProcessTypes(code, parentNode, node) {
       !checkNodeParentMemberProperty(node) &&
       !checkNodeParentCallCallee(node) &&
       !checkNodeParentFunctionId(node) &&
-      !checkNodeParentFunctionArguments(node)) {
+      !checkNodeParentFunctionArguments(node) &&
+      !checkNodeParentUpdate(node)) {
     var expr = 'U(' + node[globalIndexName] + ', arg)';
     var newNode = getExpression(expr);
     newNode.arguments[1] = node;
@@ -759,18 +846,15 @@ function postProcessTypes(code, parentNode, node) {
 };
 
 function postProcessTypesAdd(code, parentNode, node) {
-  node[globalIndexName] = astNodes.length;
-  astNodes.push(node);
-  astNodeParents[node[globalIndexName]] = parentNode;
+  node[globalIndexName] = state.astNodes.length;
+  state.astNodes.push(node);
+  state.astNodeParents[node[globalIndexName]] = parentNode;
   return node;
 };
 
 function walk(code, parentNode, node, postProcess) {
   if (node !== null && node !== undefined && node.hasOwnProperty('type')) {
     var newNode = {};
-    /*
-    console.log(node.type);
-    */
     for (var prop in node) {
       var value = node[prop];
       var newValue;
@@ -788,9 +872,6 @@ function walk(code, parentNode, node, postProcess) {
       newNode[prop] = newValue;
     }
     node = postProcess(code, parentNode, newNode);
-    /*
-    console.log(node);
-    */
   }
   return node;
 };
@@ -801,21 +882,24 @@ function rewrite(code, ast, postProcess) {
 
 function declareTypes(body, externs, firstGenTypes) {
   var types = [];
-  for (var name in reasonTypes) {
-    var value = reasonTypes[name];
+  for (var name in state.reasonTypes) {
+    var value = state.reasonTypes[name];
     if ('decl' in value) {
       value = value.decl;
     } else {
       value = '';
     };
+    var s;
+    if (value != '') {
+      s = 'type ' + name + ' = ' + value + ';';
+    } else {
+      s = 'type ' + name + ';';
+    }
     /* Only list types that are used */
     if (body.includes(name) || externs.includes(name) || firstGenTypes.includes(name)) {
-      if (value != '') {
-        s = 'type ' + name + ' = ' + value + ';';
-      } else {
-        s = 'type ' + name + ';';
-      }
       types.push(s);
+    } else {
+      // types.push('/* /* Unused type: */ ' + s + ' */');
     };
   };
   return types;
@@ -823,8 +907,8 @@ function declareTypes(body, externs, firstGenTypes) {
 
 function declareExterns() {
   var externs = [];
-  for (var name in reasonExterns) {
-    var value = reasonExterns[name];
+  for (var name in state.reasonExterns) {
+    var value = state.reasonExterns[name];
     if ('isNotExtern' in value && value.isNotExtern) {
       continue;
     };
@@ -834,7 +918,11 @@ function declareExterns() {
     if (noargs) {
       typesig = retType;
     } else {
-      typesig = '(' + value.argTypes.join(', ') + ') => ' + retType;
+      if (value.argTypes.length == 0) {
+        typesig = 'unit => ' + retType;
+      } else {
+        typesig = '(' + value.argTypes.join(', ') + ') => ' + retType;
+      }
     };
     var callName = value.callName;
     var s =
@@ -847,6 +935,66 @@ function declareExterns() {
     externs.push(s);
   }
   return externs;
+}
+
+function compileAST(data) {
+  var syntax =
+    esprima.parse(
+      data,
+      { raw: true, tokens: true, range: true, comment: true });
+
+  syntax = escodegen.attachComments(syntax, syntax.comments, syntax.tokens);
+  
+  state = initState(data);
+
+  var nodePaths = [];
+
+  function postProcessAST(code, path, value, node) {
+    nodePaths.push(path.join('/') + ' = ' + value);
+  };
+
+  function walk(code, path, name, node, postProcess) {
+    path.push(name);
+    if (node !== null && node !== undefined && typeof(node) == 'object') {
+      var newNode = {};
+      for (var prop in node) {
+        var value = node[prop];
+        var newValue;
+        if (Array.isArray(value)) {
+          newValue = [];
+          for (var i = 0; i < value.length; i++) {
+            var name = prop + '[' + i + ']';
+            newValue.push(walk(code, path, name, value[i], postProcess));
+          }
+        } else {
+          var name = prop;
+          newValue = walk(code, path, name, value, postProcess);
+        }
+        newNode[prop] = newValue;
+      }
+    } else {
+      var value = JSON.stringify(node);
+      postProcess(code, path, value, newNode);
+    }
+    path.pop();
+  };
+
+  syntax.tokens = [];
+
+  walk(data, [], '', syntax, postProcessAST);
+
+  /*
+  var nodePaths = [];
+  for (var i = 0; i < state.astNodes.length; i++) {
+    var node = state.astNodes[i];
+    var path = getNodePath(node);
+    for (var j = 0; j < path.length; j++) {
+
+    }
+  }
+  */
+  var s = nodePaths.join('\n');
+  return s;
 }
 
 function compile(data) {
@@ -862,6 +1010,7 @@ function compile(data) {
   /*
   console.log(JSON.stringify(syntax, null, 2));
    */
+  state = initState(data);
 
   var syntax2 = rewrite(data, syntax, postProcessTypesAdd);
 
@@ -885,8 +1034,6 @@ function compile(data) {
   */
 
   console.log(code);
-
-  astCode = data;
 
   eval(code);
   
@@ -960,8 +1107,11 @@ $('document').ready(function() {
       $('body').append('<h2>ReasonML Output</h2>');
       
       $('body').append(
-        '<div><input id="loadlibs" type="button" value="Load Library"></input>' +
-        '<input id="transpile" type="button" value="Transpile"></input></div>');
+        '<div>' + 
+        '<input id="loadlibs" type="button" value="Load Library"></input>' +
+        '<input id="transpile" type="button" value="Transpile"></input>' +
+        '<input id="getAst" type="button" value="Get AST"></input>' +
+        '</div>');
       
       $('body').append('<textarea id="result" cols=80 rows=100></textarea>');
       var resultarea = $("#result");
@@ -984,7 +1134,19 @@ $('document').ready(function() {
         }
         editor3.getDoc().setValue(result);
       };
+      var getAST = function() {
+        var result;
+        try {
+          result = compileAST(editor.getDoc().getValue());
+        } catch(error) {
+          result = error.stack.toString();
+          editor3.getDoc().setValue(result);
+          throw(error);
+        }
+        editor3.getDoc().setValue(result);
+      };
       $("#transpile").on("click", transpile);
+      $("#getAst").on("click", getAST);
 
       $('body').append('<h2>Eval DOM Output</h2>');
 
