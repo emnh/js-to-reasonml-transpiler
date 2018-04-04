@@ -1,3 +1,6 @@
+/* PIXI required only for convenience of fast dev iter on example */
+var PIXI = require('pixi.js');
+
 var esprima = require('esprima');
 
 var escodegen = require('escodegen');
@@ -368,6 +371,7 @@ var processNodes = {
   },
   MemberExpression: function(code, node) {
     var parentNode = astNodeParents[node[globalIndexName]];
+    var useRight = null;
     if (parentNode.type == 'AssignmentExpression' &&
         parentNode.left[globalIndexName] == node[globalIndexName]) {
       qual = 'set';
@@ -382,28 +386,31 @@ var processNodes = {
         retType: retType,
         callName: callName
       };
-      node.reasonml = '/* Not used */';
       node.reasonmlSet = externName;
       node.reasonmlLeft = node.object.reasonml;
-    } else {
-      if (node[globalTypeName] === undefined) {
+      useRight = parentNode.right[globalTypeName];
+    }
+    var retType = node[globalTypeName];
+    if (retType === undefined) {
+      if (useRight !== null) {
+        retType = useRight;
+      } else {
         node.reasonml = '/* Unresolved MemberExpression */';
         return node;
       };
-      qual = 'get';
-      var externName = qual + getExternName(code, node);
-      var attributes = ['[@bs.get]'];
-      var argTypes = [node.object[globalTypeName]];
-      var retType = node[globalTypeName];
-      var callName = node.property.name;
-      reasonExterns[externName] = {
-        attributes: attributes,
-        argTypes: argTypes,
-        retType: retType,
-        callName: callName
-      };
-      node.reasonml = externName + '(' + node.object.reasonml + ')';
-    }
+    };
+    qual = 'get';
+    var externName = qual + getExternName(code, node);
+    var attributes = ['[@bs.get]'];
+    var argTypes = [node.object[globalTypeName]];
+    var callName = node.property.name;
+    reasonExterns[externName] = {
+      attributes: attributes,
+      argTypes: argTypes,
+      retType: retType,
+      callName: callName
+    };
+    node.reasonml = externName + '(' + node.object.reasonml + ')';
     return node;
   },
   Identifier: function(code, node) {
@@ -441,17 +448,48 @@ var processNodes = {
     return node;
   },
   AssignmentExpression: function(code, node) {
+    var op = node.operator;
     if (node.left.reasonmlSet !== undefined) {
       /* Property */
-      node.reasonml = node.left.reasonmlSet + '(' + node.left.reasonmlLeft + ", " + node.right.reasonml + ')';
+      if (op == '=') {
+        node.reasonml = node.left.reasonmlSet + '(' + node.left.reasonmlLeft + ", " + node.right.reasonml + ')';
+      } else {
+        /* *= /= += -= */
+        var op2 = op[0];
+        if (node.right[globalTypeName] == 'float') {
+            op2 += '.';
+        }
+        paddedOp = ' ' + op2 + ' ';
+        node.reasonml =
+          node.left.reasonmlSet +
+          '(' + node.left.reasonmlLeft + ", " + 
+          '(' + node.left.reasonml + paddedOp + node.right.reasonml + '))' +
+          ')';
+      }
     } else {
       /* Plain assignment */
-      node.reasonml = 'let ' + node.left.reasonml + ' = ' + node.right.reasonml;
+      if (op == '=') {
+        node.reasonml = 'let ' + node.left.reasonml + ' = ' + node.right.reasonml;
+      } else {
+        /* *= /= += -= */
+        var op2 = op[0];
+        if (node.right[globalTypeName] == 'float') {
+            op2 += '.';
+        }
+        paddedOp = ' ' + op2 + ' ';
+        node.reasonml =
+          'let ' + node.left.reasonml + ' = ' +
+          node.left.reasonml + paddedOp + '(' + node.right.reasonml + ')';
+      }
     }
     return node;
   },
   BinaryExpression: function(code, node) {
-    node.reasonml = node.left.reasonml + ' ' + node.operator + ' ' + node.right.reasonml;
+    var operator = node.operator;
+    if (node[globalTypeName] == 'float') {
+      operator = operator + '.';
+    }
+    node.reasonml = node.left.reasonml + ' ' + operator + ' ' + node.right.reasonml;
     return node;
   },
   FunctionDeclaration: function(code, node) {
@@ -791,8 +829,8 @@ function compile(data) {
   return program;
 };
 
-/* Load CodeMirror CSS */
 $('document').ready(function() {
+  /* Load CodeMirror CSS */
   $('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href',
         'css/codemirror.css'));
 
@@ -803,6 +841,8 @@ $('document').ready(function() {
       $('body').append('<h2>Introduction</h2>');
       $('body').append('<p>Welcome to my very hacky JavaScript to ReasonML transpiler ' +
           '(<a href="https://github.com/emnh/js-to-reasonml-transpiler">Project on GitHub</a>)! ' +
+          'If you do not see any code below, try reloading the page ' +
+          '(bug due to race conditions resolved by cached files I suppose).' +
           'You might also check out the alternative <a href="https://github.com/chenglou/jeason">Jeason</a>. ' +
           'Paste your code in the <a href="#exampleCode">Code to Transpile</a> ' +
           'and the script will try to convert it into ReasonML externs and code. ' +
@@ -850,16 +890,20 @@ $('document').ready(function() {
       $("#loadlibs").on("click", function() {
         eval(editor2.getDoc().getValue());
       });
-      $("#transpile").on("click", function() {
-        $("#result").val('Waiting for document.ready...');
-        var result = compile(editor.getDoc().getValue());
-        /*
-        $("#result").val(result);
-        */
+      var transpile = function() {
+        var result;
+        try {
+          result = compile(editor.getDoc().getValue());
+        } catch(error) {
+          result = error.toString();
+        }
         editor3.getDoc().setValue(result);
-      });
+      };
+      $("#transpile").on("click", transpile);
 
       $('body').append('<h2>Eval DOM Output</h2>');
+
+      transpile();
     },
     "text");
 });
