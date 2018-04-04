@@ -24,6 +24,7 @@ sprite.buttonMode = true;
  * generated script to use them correctly. */
 function onClick(evt) {
   /* PS: Make sure your event handlers are called at least once by script */
+  console.log(evt);
   sprite.scale.x *= 1.25;
   sprite.scale.y *= 1.25;
   return 0;
@@ -31,7 +32,7 @@ function onClick(evt) {
 
 /* PS: Make sure your event handlers are called at least once by script, like
  * in the following line: */
-onClick();
+onClick(new Event('test'));
 
 // Pointers normalize touch and mouse
 sprite.on('pointerdown', onClick);
@@ -43,7 +44,6 @@ sprite.on('pointerdown', onClick);
 app.stage.addChild(sprite);
 
 
-var x = 2;
+var x = 3;
 
-x = 3;
 x *= 2;
