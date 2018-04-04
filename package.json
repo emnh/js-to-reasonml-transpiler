@@ -14,6 +14,7 @@
     "webpack-dev-server": "^2.11.1"
   },
   "dependencies": {
+    "bs-platform": "^2.2.3",
     "codemirror": "^5.36.0",
     "escodegen": "^1.9.1",
     "esprima": "^4.0.0",
