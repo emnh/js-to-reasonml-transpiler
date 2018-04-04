@@ -938,3 +938,5 @@ $('document').ready(function() {
     },
     "text");
 });
+
+window.compile = compile;
