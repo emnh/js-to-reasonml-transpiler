@@ -11,8 +11,9 @@ function timeout(ms) {
   const page = await browser.newPage();
   /*
   page.on('console', msg => {
-    for (let i = 0; i < msg.args().length; ++i)
-      console.log(`${i}: ${msg.args()[i]}`);
+    for (let i = 0; i < msg.args().length; ++i) {
+      console.error(`${i}: ${msg.args()[i]}`);
+    }
   });
   */
   await page.goto('http://localhost:8080/index.html', {"waitUntil" : "networkidle0"} );
