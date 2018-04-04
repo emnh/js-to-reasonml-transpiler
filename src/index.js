@@ -243,6 +243,19 @@ function addArgTypes(node, argTypes) {
   }
 };
 
+function getModName(code, node) {
+  var modName = null;
+  var resolved = null;
+  var parts = getCode(code, node).split('.');
+  if (parts.length > 1) {
+    modName = parts[0];
+    if (modName in modMap) {
+      resolved = modMap[modName];
+    };
+  };
+  return [parts, modName, resolved];
+}
+
 function applyExpression(opts, code, node) {
   var attributes = opts.attributes;
   var prefix = '';
@@ -257,14 +270,7 @@ function applyExpression(opts, code, node) {
   if (prefix == '') {
     createId = lowercaseFirstLetter(createId);
   };
-  var modName = null;
-  var parts = getCode(code, node.callee).split('.');
-  if (parts.length > 1 && opts.type == 'new') {
-    modName = parts[0];
-    if (modName in modMap) {
-      modName = modMap[modName];
-    };
-  };
+  var [parts, modName, modResolved] = getModName(code, node.callee);
   var callName = parts[parts.length - 1];
 
   var argTypes = [];
@@ -295,8 +301,8 @@ function applyExpression(opts, code, node) {
     retType: retType,
     callName: callName
   };
-  if (modName !== null) {
-    reasonExterns[externName].attributes.push('[@bs.module "' + modName + '"]');
+  if (modName !== null && opts.type == 'new') {
+    reasonExterns[externName].attributes.push('[@bs.module "' + modResolved + '"]');
   }
   node.reasonml = createId + "(" + objArg + reargs + ")";
   return node;
@@ -400,9 +406,15 @@ var processNodes = {
       };
     };
     qual = 'get';
+    var [parts, modName, modResolved] = getModName(code, node);
     var externName = qual + getExternName(code, node);
     var attributes = ['[@bs.get]'];
     var argTypes = [node.object[globalTypeName]];
+    if (modName !== null && modName in modMap) {
+      attributes = ['[@bs.val]'];
+    } else {
+      modName = null;
+    }
     var callName = node.property.name;
     reasonExterns[externName] = {
       attributes: attributes,
@@ -410,7 +422,18 @@ var processNodes = {
       retType: retType,
       callName: callName
     };
-    node.reasonml = externName + '(' + node.object.reasonml + ')';
+    if (modName !== null) {
+      reasonExterns[externName].noargs = true;
+      attributes.push('[@bs.module "' + modResolved + '"]');
+      if (parts.length > 2) {
+        for (var i = 1; i < parts.length - 1; i++) {
+          attributes.push('[@bs.scope "' + parts[i] + '"]');
+        }
+      }
+      node.reasonml = externName;
+    } else {
+      node.reasonml = externName + '(' + node.object.reasonml + ')';
+    }
     return node;
   },
   Identifier: function(code, node) {
@@ -463,8 +486,7 @@ var processNodes = {
         node.reasonml =
           node.left.reasonmlSet +
           '(' + node.left.reasonmlLeft + ", " + 
-          '(' + node.left.reasonml + paddedOp + node.right.reasonml + '))' +
-          ')';
+          '(' + node.left.reasonml + paddedOp + node.right.reasonml + '))';
       }
     } else {
       /* Plain assignment */
