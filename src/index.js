@@ -24,7 +24,8 @@ var modMap = {
 
 var globalsMap = {
   'document': {},
-  'window': {}
+  'window': {},
+  'console': {}
 };
 
 /* Begin ReasonML runtime code generation helpers */
@@ -365,15 +366,26 @@ var processNodes = {
     var funRet = 'usageFun' + getExternName(code, node.callee) + 'RetT';
     /* Resolve return type of local functions */
     if (funName in reasonTypes) {
+      var argTypes = []
+      addArgTypes(node, argTypes);
+      argTypes = '(' + argTypes.join(', ') + ')';
       reasonTypes[funName].decl =
-        reasonTypes[funName].decl.replace(funRet, node[globalTypeName]);
+        reasonTypes[funName]
+          .decl
+          .replace(funRet, node[globalTypeName])
+          .replace(funArg, argTypes);
     }
-    return applyExpression({
-        type: 'call',
-        attributes: ['[@bs.send]']
-      },
-      code,
-      node);
+    if (getCode(code, node).startsWith("console.log")) {
+      node.reasonml = 'Js.log(' + joinArgs(node) + ')';
+      return node;
+    } else {
+      return applyExpression({
+          type: 'call',
+          attributes: ['[@bs.send]']
+        },
+        code,
+        node);
+    }
   },
   MemberExpression: function(code, node) {
     var parentNode = astNodeParents[node[globalIndexName]];
@@ -843,11 +855,10 @@ function compile(data) {
 
   var types = declareTypes(syntaxReasonML.reasonml, decl, '');
   
-  /*
+  /* TODO: do recursive lookup of types instead of just 2 steps */
   var types2 = declareTypes(syntaxReasonML.reasonml, decl, types.join('\n'));
-  */
 
-  var header = types.join('\n') + '\n' + decl;
+  var header = types2.join('\n') + '\n' + decl;
 
   var body = syntaxReasonML.reasonml;
 
