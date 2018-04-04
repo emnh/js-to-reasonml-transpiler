@@ -316,7 +316,7 @@ var processNodes = {
     var rml = [];
     for (var i = 0; i < node.declarations.length; i++) {
       var name = node.declarations[i].id.name;
-      var s = 'let ' + name + ' = ' + node.declarations[i].init.reasonml + ';';
+      var s = 'let ' + name + ' = ' + node.declarations[i].init.reasonml + ';\n';
       rml.push(s);
     }
     node.reasonml = rml.join('\n');
@@ -350,7 +350,7 @@ var processNodes = {
     /*
     console.log(getCode(code, node), node.expression[globalTypeName]);
     */
-    node.reasonml = prefix + node.expression.reasonml + ';';
+    node.reasonml = prefix + node.expression.reasonml + ';\n';
     return node;
   },
   CallExpression: function(code, node) {
@@ -524,11 +524,20 @@ var processNodes = {
 };
 
 function postProcess(code, parentNode, node) {
+  var retval = node;
   if (node.type in processNodes) {
     var process = processNodes[node.type];
-    return process(code, node);
+    retval = process(code, node);
   };
-  return node;
+  if ('leadingComments' in retval) {
+    var comment = []
+    for (var i = 0; i < retval.leadingComments.length; i++) {
+      comment.push(retval.leadingComments[i].value);
+    }
+    comment = comment.join('\n');
+    retval.reasonml = '/*' + comment + ' */' + '\n' + retval.reasonml;
+  }
+  return retval;
 };
 
 function U(index, arg) {
@@ -895,7 +904,7 @@ $('document').ready(function() {
         try {
           result = compile(editor.getDoc().getValue());
         } catch(error) {
-          result = error.toString();
+          result = error.stack.toString();
         }
         editor3.getDoc().setValue(result);
       };
