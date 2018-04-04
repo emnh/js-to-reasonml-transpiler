@@ -13,7 +13,7 @@ require('codemirror/mode/mllike/mllike');
 
 var $ = require('jquery');
 
-var scriptSource = "src/example.js";
+var scriptSource = "examples/example_001.js";
 
 var libSource = "src/lib.js";
 
@@ -29,23 +29,29 @@ var globalsMap = {
 };
 
 /* Begin ReasonML runtime code generation helpers */
+var statementTerminator = ';\n';
 var globalId = 0;
 var globalIdName = '_ReasonMLId';
 var globalIndexName = '_ReasonMLIndex';
 var globalTypeName = '_ReasonMLType';
 var smallObjectCounter = 0;
+var anonymousFunctionCounter = 0;
 
 function getType(obj, rootNode, marker) {
   if (marker === undefined) {
     marker = globalId++;
   }
   var byUsage = function(prefix, isFun) {
-    var usageT = prefix + getExternName(astCode, rootNode) + 'T';
+    var externName = getExternName(astCode, rootNode);
+    if (rootNode.type == 'FunctionExpression') {
+      externName = 'Anon' + anonymousFunctionCounter.toString();
+    }
+    var usageT = prefix + externName + 'T';
     obj[globalTypeName] = usageT;
     reasonTypes[obj[globalTypeName]] = {};
     if (isFun) {
-      var usageArgT = prefix + getExternName(astCode, rootNode) + 'ArgT';
-      var usageRetT = prefix + getExternName(astCode, rootNode) + 'RetT';
+      var usageArgT = prefix + externName + 'ArgT';
+      var usageRetT = prefix + externName + 'RetT';
       reasonTypes[obj[globalTypeName]] = {
         decl: usageArgT + ' => ' + usageRetT + ' and ' + usageArgT + ' and ' + usageRetT
       };
@@ -323,7 +329,10 @@ var processNodes = {
     var rml = [];
     for (var i = 0; i < node.declarations.length; i++) {
       var name = node.declarations[i].id.name;
-      var s = 'let ' + name + ' = ' + node.declarations[i].init.reasonml + ';\n';
+      var s = 'let ' + name + ' = ' + node.declarations[i].init.reasonml;
+      if (!s.trim().endsWith(';')) {
+        s += statementTerminator;
+      }
       rml.push(s);
     }
     node.reasonml = rml.join('\n');
@@ -357,7 +366,10 @@ var processNodes = {
     /*
     console.log(getCode(code, node), node.expression[globalTypeName]);
     */
-    node.reasonml = prefix + node.expression.reasonml + ';\n';
+    node.reasonml = prefix + node.expression.reasonml;
+    if (!node.reasonml.trim().endsWith(';')) {
+      node.reasonml += statementTerminator;
+    }
     return node;
   },
   CallExpression: function(code, node) {
@@ -530,6 +542,10 @@ var processNodes = {
     node.reasonml = 'let ' + node.id.reasonml + ' = (' + joinParams(node) + ') => ' + node.body.reasonml;
     return node;
   },
+  FunctionExpression: function(code, node) {
+    node.reasonml = '(' + joinParams(node) + ') => ' + node.body.reasonml;
+    return node;
+  },
   BlockStatement: function(code, node) {
     var rml = [];
     for (var i = 0; i < node.body.length; i++) {
@@ -541,6 +557,22 @@ var processNodes = {
   },
   ReturnStatement: function(code, node) {
     node.reasonml = node.argument.reasonml;
+    return node;
+  },
+  Property: function(code, node) {
+    node.reasonml = "/* Shouldn't show. Processed by ObjectExpression */";
+    return node;
+  },
+  VariableDeclarator: function(code, node) {
+    node.reasonml = "/* Shouldn't show. Processed by VariableDeclaration */";
+    return node;
+  },
+  Line: function(code, node) {
+    node.reasonml = "/* Shouldn't show. Comments processed elsewhere.*/";
+    return node;
+  },
+  Block: function(code, node) {
+    node.reasonml = "/* Shouldn't show. Comments processed elsewhere.*/";
     return node;
   },
   BogusTemplate: function(code, node) {
@@ -562,6 +594,8 @@ function postProcess(code, parentNode, node) {
   if (node.type in processNodes) {
     var process = processNodes[node.type];
     retval = process(code, node);
+  } else {
+    throw(new Error('unimplemented node type: ' + node.type + ', parent: ' + parentNode.type));
   };
   if ('leadingComments' in retval) {
     var comment = []
@@ -681,7 +715,9 @@ function postProcessTypes(code, parentNode, node) {
     return checkNodeParent(node, 'FunctionDeclaration', 'id');
   };
   var checkNodeParentFunctionArguments = function(node) {
-    return checkNodeParent(node, 'FunctionDeclaration', 'params');
+    var a = checkNodeParent(node, 'FunctionDeclaration', 'params');
+    var b = checkNodeParent(node, 'FunctionExpression', 'params');
+    return a || b;
   };
   var isVarDecl = checkIt({ 'VariableDeclarator': {} }, 'init');
   var isObjKey = checkIt({ 'Property': {} }, 'value');
@@ -730,7 +766,7 @@ function postProcessTypesAdd(code, parentNode, node) {
 };
 
 function walk(code, parentNode, node, postProcess) {
-  if (node.hasOwnProperty('type')) {
+  if (node !== null && node !== undefined && node.hasOwnProperty('type')) {
     var newNode = {};
     /*
     console.log(node.type);
@@ -738,7 +774,10 @@ function walk(code, parentNode, node, postProcess) {
     for (var prop in node) {
       var value = node[prop];
       var newValue;
-      if (Array.isArray(value)) {
+      if (node.type == "Program" && prop == 'tokens') {
+        /* Don't process the raw tokens, only AST */
+        newValue = value;
+      } else if (Array.isArray(value)) {
         newValue = [];
         for (var i = 0; i < value.length; i++) {
           newValue.push(walk(code, newNode, value[i], postProcess));
@@ -817,6 +856,8 @@ function compile(data) {
       { raw: true, tokens: true, range: true, comment: true });
 
   syntax = escodegen.attachComments(syntax, syntax.comments, syntax.tokens);
+
+  console.log(syntax);
 
   /*
   console.log(JSON.stringify(syntax, null, 2));
@@ -938,6 +979,8 @@ $('document').ready(function() {
           result = compile(editor.getDoc().getValue());
         } catch(error) {
           result = error.stack.toString();
+          editor3.getDoc().setValue(result);
+          throw(error);
         }
         editor3.getDoc().setValue(result);
       };
