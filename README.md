@@ -43,6 +43,10 @@ node src/puppet.js examples/example_001.js >| src/Test.re && vi src/Test.re
 npm start
 ```
 
+## Caveats
+ - Example 4. Need to add a |> ignore at end of function.
+ - Example 9. Need to add a |> ignore at end of function.
+
 Go to http://localhost:8080/test .
 
 # Alternatives
