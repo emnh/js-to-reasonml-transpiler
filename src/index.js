@@ -526,9 +526,9 @@ var processNodes = {
       var attributes = ['[@bs.set]'];
       var argTypes = [node.object[globalTypeName], parentNode.right[globalTypeName]];
       /*
-      var retType = 'unit';
-      */
       var retType = parentNode[globalTypeName];
+      */
+      var retType = 'unit';
       var callName = node.property.name;
       if (node.computed) {
         attributes = ['[@bs.set_index]'];
