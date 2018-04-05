@@ -47,7 +47,7 @@ To run the example:
 
 ```bash
 npm run webpack # to compile dist/node.js
-node dist/node.js
+node dist/node.js # will transpile src/example-node.txt to src/TestNode.re
 npm start # to compile src/TestNode.re
 node src/TestNode.bs.js
 ```
