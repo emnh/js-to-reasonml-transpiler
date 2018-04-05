@@ -13,6 +13,19 @@ I am using :
  - Esprima (reading js)
  - Escodegen (writing js)
 
+# Manual labour
+
+This section lists workarounds for transpilations not implemented yet.
+
+ - Reorder functions so that they are called after they are declared
+ - Disambiguate overloaded functions with same arity (use only one overload in each example)
+ - Call event handlers manually at least once, after they've been passed around
+   to event registers. Alternatively, set a high grace period (see below) and
+   trigger events manually in browser.
+ - There is a 2 second grace period to allow for resource load and timer
+   updates etc when evaluating example code. Adjust period in index.js if
+   needed. TODO: create option for this on web page.
+
 # Alternatives
 
  - [Jeason](https://github.com/chenglou/jeason) is another approach using Flow.
