@@ -36,6 +36,15 @@ After transpile:
    because it will be hard to detect when it's necessary and too many of them
    clutters the code.
 
+# Testing examples
+
+```bash
+node src/puppet.js examples/example_001.js >| src/Test.re && vi src/Test.re
+npm start
+```
+
+Go to http://localhost:8080/test .
+
 # Alternatives
 
  - [Jeason](https://github.com/chenglou/jeason) is another approach using Flow.
