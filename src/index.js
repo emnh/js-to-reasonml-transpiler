@@ -13,10 +13,7 @@ require('codemirror/mode/mllike/mllike');
 
 var $ = require('jquery');
 
-/*
-var scriptSource = "examples/example_003.js";
-*/
-var scriptSource = "src/example.js";
+var scriptSource = "examples/example_007.js";
 
 var libSource = "src/lib.js";
 
@@ -131,8 +128,12 @@ function getType(obj, rootNode, marker) {
       if (Array.isArray(obj)) {
         if (obj.length > 0) {
           var t = getType(obj[0], rootNode, marker);
-          for (var i = 0; i < obj.length; i++) {
-            if (t != getType(obj[i]), rootNode, marker) {
+          for (var i = 1; i < obj.length; i++) {
+            var t2 = getType(obj[i], rootNode, marker);
+            if (t !== t2) {
+              /*
+              console.log("mixed array", t, t2);
+              */
               return 'array(unknownT)';
             }
           }
@@ -143,7 +144,7 @@ function getType(obj, rootNode, marker) {
       } else {
         var childTypes = [];
         var propCount = 0;
-        var propLimit = 10;
+        var propLimit = 20;
         for (var prop in obj) {
           if (prop == globalIdName) {
             continue;
@@ -300,7 +301,7 @@ function applyExpression(opts, code, node) {
   var createId = 'BLAH';
   if (opts.type == 'new') {
     prefix = 'new';
-    createId = prefix + getExternName(code, node.callee);
+    createId = prefix + getExternName(code, node.callee) + node.arguments.length.toString();
   } else if (opts.type == 'call') {
     prefix = '';
     createId = getExternCallName(code, node.callee);
