@@ -30,12 +30,12 @@ function onClick(evt) {
   return 0;
 }
 
-/* PS: Make sure your event handlers are called at least once by script, like
- * in the following line: */
-onClick(new Event('test'));
-
 // Pointers normalize touch and mouse
 sprite.on('pointerdown', onClick);
+
+/* PS: Make sure your event handlers are called at least once by script, and
+ * done after function passed around, like in the following line: */
+onClick(new Event('test'));
 
 // Alternatively, use the mouse & touch events:
 // sprite.on('click', onClick); // mouse-only
