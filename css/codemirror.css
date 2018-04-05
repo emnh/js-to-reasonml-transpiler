@@ -346,6 +346,6 @@ div.CodeMirror-dragcursors {
 span.CodeMirror-selectedtext { background: none; }
 
 /* Added by emh */
-.CodeMirror {
+.CodeMirror, .CodeMirror-scroll {
   height: auto;
 };
