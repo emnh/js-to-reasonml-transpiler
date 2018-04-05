@@ -39,7 +39,7 @@ After transpile:
 # Testing examples
 
 ```bash
-node src/puppet.js examples/example_001.js >| src/Test.re && vi src/Test.re
+node src/puppet.js examples/pixiBasics/example_001.js >| src/Test.re
 npm start
 ```
 
