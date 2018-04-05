@@ -13,7 +13,7 @@ require('codemirror/mode/mllike/mllike');
 
 var $ = require('jquery');
 
-var scriptSource = "examples/example_007.js";
+var scriptSource = "examples/example_009.js";
 
 var libSource = "src/lib.js";
 
@@ -234,8 +234,11 @@ function getIdParts(code, node) {
     }
   };
   walk(code, null, node, savePart);
-  if (parts.length > 4) {
+  /*if (parts.length > 4) {
     parts = parts.slice(parts.length - 4);
+  }*/
+  if (parts.length > 1) {
+    parts = parts.slice(parts.length - 1);
   }
   return parts;
 }
@@ -262,7 +265,12 @@ function getExternCallName(code, node) {
   var cparts = [];
   for (var i = 0; i < parts.length; i++) {
     if (i == 0) {
-      cparts[i] = parts[i].toLowerCase();
+      if (parts[i].charAt(0).toLowerCase() !== parts[i].charAt(0)) {
+        /* Lowercase whole word if first letter is not already lowercase */
+        cparts[i] = parts[i].toLowerCase();
+      } else {
+        cparts[i] = parts[i];
+      }
     } else {
       cparts[i] = capitalizeFirstLetter(parts[i]);
     };
@@ -295,6 +303,27 @@ function getModName(code, node) {
   return [parts, modName, resolved];
 }
 
+function addExtern(externName, value) {
+  var decl = declareExtern(externName, value);
+  /*
+  console.log("decl", decl);
+  */
+  if (!value.isNotExtern && externName in state.reasonExterns) {
+    var oldDecl = declareExtern(externName, state.reasonExterns[externName]);
+    if (decl !== oldDecl) {
+      // Disambiguate by argument types
+      console.log("disambiguate", externName);
+      externName += value.argTypes.join('');
+    } else {
+      /*
+      console.log("no disambiguate", externName);
+      */
+    }
+  }
+  state.reasonExterns[externName] = value;
+  return externName;
+}
+
 function applyExpression(opts, code, node) {
   var attributes = opts.attributes;
   var prefix = '';
@@ -317,13 +346,17 @@ function applyExpression(opts, code, node) {
   var objArg = '';
   var reargs = joinArgs(node);
   var isNotExtern = false;
+  var objArgType = '';
   if (opts.type == 'call') {
     if (node.callee.type == 'MemberExpression') {
-      argTypes.push(node.callee.object[globalTypeName]);
+      objArgType = node.callee.object[globalTypeName];
+      argTypes.push(objArgType);
       objArg = node.callee.object.reasonml;
+      /*
       if (reargs != '') {
         objArg = objArg + ', ';
       };
+      */
     } else {
       /* Top level call */
       isNotExtern = !(callName in window); 
@@ -334,7 +367,7 @@ function applyExpression(opts, code, node) {
   var retType = node[globalTypeName];
 
   var externName = createId;
-  state.reasonExterns[externName] = {
+  var value = {
     isNotExtern: isNotExtern,
     attributes: attributes,
     argTypes: argTypes,
@@ -342,14 +375,22 @@ function applyExpression(opts, code, node) {
     callName: callName
   };
   if (modName !== null && opts.type == 'new') {
-    state.reasonExterns[externName].attributes.push('[@bs.module "' + modResolved + '"]');
+    attributes.push('[@bs.module "' + modResolved + '"]');
     if (parts.length > 2) {
       for (var i = 1; i < parts.length - 1; i++) {
         attributes.push('[@bs.scope "' + parts[i] + '"]');
       }
     }
   }
-  node.reasonml = createId + "(" + objArg + reargs + ")";
+  externName = addExtern(externName, value);
+  if (objArg !== '') {
+    if (reargs !== '') {
+      reargs = '(' + reargs + ')'
+    }
+    node.reasonml = '(' + objArg + ' |. ' + externName + reargs + ')';
+  } else {
+    node.reasonml = externName + "(" + objArg + reargs + ")";
+  }
   return node;
 };
 
@@ -466,12 +507,13 @@ var processNodes = {
       var argTypes = [node.object[globalTypeName], parentNode.right[globalTypeName]];
       var retType = 'unit';
       var callName = node.property.name;
-      state.reasonExterns[externName] = {
+      var value = {
         attributes: attributes,
         argTypes: argTypes,
         retType: retType,
         callName: callName
       };
+      externName = addExtern(externName, value);
       node.reasonmlSet = externName;
       node.reasonmlLeft = node.object.reasonml;
       useRight = parentNode.right[globalTypeName];
@@ -496,23 +538,29 @@ var processNodes = {
       modName = null;
     }
     var callName = node.property.name;
-    state.reasonExterns[externName] = {
+    var value = {
       attributes: attributes,
       argTypes: argTypes,
       retType: retType,
       callName: callName
     };
     if (modName !== null) {
-      state.reasonExterns[externName].noargs = true;
+      value.noargs = true;
       attributes.push('[@bs.module "' + modResolved + '"]');
       if (parts.length > 2) {
         for (var i = 1; i < parts.length - 1; i++) {
           attributes.push('[@bs.scope "' + parts[i] + '"]');
         }
       }
+    }
+    externName = addExtern(externName, value);
+    if (modName !== null) {
       node.reasonml = externName;
     } else {
+      /*
       node.reasonml = externName + '(' + node.object.reasonml + ')';
+      */
+      node.reasonml = '(' + node.object.reasonml + ' |> ' + externName + ')';
     }
     return node;
   },
@@ -1062,34 +1110,41 @@ function declareTypes(body, externs, firstGenTypes) {
   return types;
 };
 
+function declareExtern(name, value) {
+  if ('isNotExtern' in value && value.isNotExtern) {
+    return null;
+  };
+  var noargs = 'noargs' in value;
+  var retType = value.retType;
+  var typesig;
+  if (noargs) {
+    typesig = retType;
+  } else {
+    if (value.argTypes.length == 0) {
+      typesig = 'unit => ' + retType;
+    } else {
+      typesig = '(' + value.argTypes.join(', ') + ') => ' + retType;
+    }
+  };
+  var callName = value.callName;
+  var s =
+    value.attributes.join(' ') +
+    ' external ' +
+    name +
+    ' : ' +
+    typesig +
+    ' = "' + callName + '";';
+  return s;
+}
+
 function declareExterns() {
   var externs = [];
   for (var name in state.reasonExterns) {
     var value = state.reasonExterns[name];
-    if ('isNotExtern' in value && value.isNotExtern) {
-      continue;
-    };
-    var noargs = 'noargs' in value;
-    var retType = value.retType;
-    var typesig;
-    if (noargs) {
-      typesig = retType;
-    } else {
-      if (value.argTypes.length == 0) {
-        typesig = 'unit => ' + retType;
-      } else {
-        typesig = '(' + value.argTypes.join(', ') + ') => ' + retType;
-      }
-    };
-    var callName = value.callName;
-    var s =
-      value.attributes.join(' ') +
-      ' external ' +
-      name +
-      ' : ' +
-      typesig +
-      ' = "' + callName + '";';
-    externs.push(s);
+    var s = declareExtern(name, value);
+    if (s != null) {
+      externs.push(s);
+    }
   }
   return externs;
 }

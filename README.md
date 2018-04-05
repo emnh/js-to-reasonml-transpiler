@@ -18,7 +18,6 @@ I am using :
 This section lists workarounds for transpilations not implemented yet.
 
  - Reorder functions so that they are called after they are declared
- - Disambiguate overloaded functions with same arity (use only one overload in each example)
  - Call event handlers manually at least once, after they've been passed around
    to event registers. Alternatively, set a high grace period (see below) and
    trigger events manually in browser.
