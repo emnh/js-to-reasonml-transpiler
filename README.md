@@ -17,13 +17,20 @@ I am using :
 
 This section lists workarounds for transpilations not implemented yet.
 
- - Reorder functions so that they are called after they are declared
+ - Reorder functions so that they are called after they are declared.
+ - Tweak integer values that should be floats, e.g. write 0.5 + 0.5 instead of
+   1 if you want the value to be considered float.
  - Call event handlers manually at least once, after they've been passed around
    to event registers. Alternatively, set a high grace period (see below) and
    trigger events manually in browser.
  - There is a 2 second grace period to allow for resource load and timer
    updates etc when evaluating example code. Adjust period in index.js if
    needed. TODO: create option for this on web page.
+
+After transpile:
+ - Add |> ignore or let _ = to avoid warnings. I don't do it automatically
+   because it will be hard to detect when it's necessary and too many of them
+   clutters the code.
 
 # Alternatives
 
