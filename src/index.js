@@ -13,7 +13,7 @@ require('codemirror/mode/mllike/mllike');
 
 var $ = require('jquery');
 
-var scriptSource = "examples/example_011.js";
+var scriptSource = "examples/example_012.js";
 
 var libSource = "src/lib.js";
 
@@ -104,7 +104,7 @@ function getType(obj, rootNode, marker) {
       break;
     case 'object':
       if (obj === null || obj === undefined) {
-        return 'Js.Nullable.t(unknownT);'
+        return 'Js.Nullable.t(unknownT)'
         break;
       }
       var typeName = undefined;
@@ -314,7 +314,7 @@ function addExtern(externName, value) {
     if (decl !== oldDecl) {
       // Disambiguate by argument types
       // console.log("disambiguate", externName);
-      externName += value.argTypes.join('');
+      externName += value.argTypes.join('').replace(/[.()]/g, '');
     } else {
       /*
       console.log("no disambiguate", externName);
@@ -416,10 +416,16 @@ var processNodes = {
     */
     for (var i = 0; i < node.declarations.length; i++) {
       var name = node.declarations[i].id.reasonml;
-      var value = node.declarations[i].init.reasonml;
       var mutable =
         'reasonmlMutable' in node.declarations[i].id &&
         node.declarations[i].id.reasonmlMutable === true;
+      var value = null;
+      if (node.declarations[i].init != null) {
+        value = node.declarations[i].init.reasonml;
+      } else {
+        value = '/* TODO: Uninitialized var */ 0';
+        mutable = true;
+      };
 
       /*
       var s2 = 'let ' + name + ' = ' + name + 'Ref^';
@@ -448,6 +454,8 @@ var processNodes = {
   Literal: function(code, node) {
     if (node[globalTypeName] == 'string') {
       node.reasonml = '"' + node.value + '"';
+    } else if (node.raw === 'null') {
+      node.reasonml = 'Js.Nullable.null';
     } else {
       node.reasonml = node.raw;
     }
@@ -644,7 +652,8 @@ var processNodes = {
       mutable = mutable || name in state.astMutables;
       node.reasonmlMutable = mutable;
       var deref = '^';
-      if (parentNode.type == 'VariableDeclarator' ||
+      if ((parentNode.type == 'VariableDeclarator' &&
+           parentNode.id[globalIndexName] == node[globalIndexName]) ||
           (parentNode.type == 'AssignmentExpression' && 
            parentNode.left[globalIndexName] == node[globalIndexName]) ||
           parentNode.type == 'UpdateExpression') {
@@ -683,7 +692,12 @@ var processNodes = {
     } else {
       /* Plain assignment */
       if (op == '=') {
-        node.reasonml = 'let ' + node.left.reasonml + ' = ' + node.right.reasonml;
+        var mutable = 'reasonmlMutable' in node.left && node.left.reasonmlMutable;
+        if (mutable) {
+          node.reasonml = node.left.reasonml + ' := ' + node.right.reasonml;
+        } else {
+          node.reasonml = 'let ' + node.left.reasonml + ' = ' + node.right.reasonml;
+        }
       } else {
         /* *= /= += -= */
         var op2 = op[0];
@@ -803,7 +817,7 @@ var processNodes = {
     for (var i = 0; i < node.elements.length; i++) {
       args.push(node.elements[i].reasonml);
     }
-    node.reasonml = '[|' + args.join(', ') + '|]';
+    node.reasonml = '[| ' + args.join(', ') + ' |]';
     return node;
   },
   ConditionalExpression: function(code, node) {
@@ -979,7 +993,7 @@ function postProcessTypes(code, parentNode, node) {
     var g = function(node) {
       var parentNode = state.astNodeParents[node[globalIndexName]];
       if (parentNode != null) {
-        if (propName in parentNode) {
+        if (propName in parentNode && parentNode[propName] !== null) {
           if (node[globalIndexName] === parentNode[propName][globalIndexName]) {
             return true;
           }
@@ -1156,12 +1170,24 @@ function rewrite(code, ast, postProcess) {
 
 function declareTypes(body, externs, firstGenTypes) {
   var types = [];
-  for (var pass = 0; pass < 2; pass++) {
+  /*
+   * Pass 0: types without declaration
+   * Pass 1: types with declaration, but no functions
+   * Pass 2: types with declaration, only functions
+   * */
+  for (var pass = 0; pass < 3; pass++) {
     for (var name in state.reasonTypes) {
       var value = state.reasonTypes[name];
       if ('decl' in value) {
-        if (pass == 0) {
-          continue;
+        var isFunction = value.decl.includes('=>');
+        if (!isFunction) {
+          if (pass != 1) {
+            continue;
+          }
+        } else {
+          if (pass != 2) {
+            continue;
+          }
         }
         value = value.decl;
       } else {
