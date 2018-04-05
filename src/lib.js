@@ -83,7 +83,7 @@ function getType(obj, rootNode, marker) {
       }
       break;
     case 'boolean':
-      return 'bool';
+      return 'Js.boolean';
       break;
     case 'string':
       return 'string';
@@ -315,10 +315,10 @@ function applyExpression(opts, code, node) {
   var attributes = opts.attributes;
   var prefix = '';
   var createId = 'BLAH';
-  if (opts.type == 'new') {
+  if (opts.type === 'new') {
     prefix = 'new';
     createId = prefix + getExternName(code, node.callee);
-  } else if (opts.type == 'call') {
+  } else if (opts.type === 'call') {
     prefix = '';
     createId = getExternCallName(code, node.callee);
   }
@@ -334,7 +334,7 @@ function applyExpression(opts, code, node) {
   var reargs = joinArgs(node);
   var isNotExtern = false;
   var objArgType = '';
-  if (opts.type == 'call') {
+  if (opts.type === 'call') {
     if (node.callee.type == 'MemberExpression') {
       objArgType = node.callee.object[globalTypeName];
       argTypes.push(objArgType);
@@ -346,7 +346,7 @@ function applyExpression(opts, code, node) {
       */
     } else {
       /* Top level call */
-      isNotExtern = !(callName in root); 
+      isNotExtern = !(callName in root) && !(modName in modMap);
       createId = callName;
     };
   };
@@ -361,7 +361,18 @@ function applyExpression(opts, code, node) {
     retType: retType,
     callName: callName
   };
+  /*
   if (modName !== null && opts.type == 'new') {
+  */
+  if (modName !== null && modResolved !== null) {
+    if (opts.type === 'call') {
+      /* We use val instead of send if global function on module. */
+      attributes[0] = '[@bs.val]';
+      objArg = '';
+      if (objArgType !== '') {
+        argTypes.shift();
+      }
+    }
     attributes.push('[@bs.module "' + modResolved + '"]');
     if (parts.length > 2) {
       for (var i = 1; i < parts.length - 1; i++) {
@@ -429,7 +440,14 @@ var processNodes = {
       if (!s.trim().endsWith(';')) {
         s += statementTerminator;
       }
-      rml.push(s);
+      var isRequire = value.startsWith('require(');
+      if (isRequire) {
+        /* TODO: a bit hacky. only supports var lib = require("string"); */
+        modMap[name] = node.declarations[i].init.arguments[0].value;
+        console.log(modMap);
+      } else {
+        rml.push(s);
+      }
     }
     node.reasonml = rml.join('\n');
     /*
@@ -440,6 +458,14 @@ var processNodes = {
   Literal: function(code, node) {
     if (node[globalTypeName] == 'string') {
       node.reasonml = '"' + node.value + '"';
+    } else if (node[globalTypeName] == 'Js.boolean') {
+      if (node.raw === 'true') {
+        node.reasonml = 'Js.true_';
+      } else if (node.raw === 'false') {
+        node.reasonml = 'Js.false_';
+      } else {
+        node.reasonml = node.raw;
+      }
     } else if (node.raw === 'null') {
       node.reasonml = 'Js.Nullable.null';
     } else {

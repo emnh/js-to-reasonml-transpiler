@@ -10,7 +10,7 @@ var scriptData = fs.readFileSync('./src/example-node.txt', 'utf-8');
 (async () => {
   var compiled = await Lib.compile(scriptData, evalTimeout);
 
-  var outFileName = './src/Test.re';
+  var outFileName = './src/TestNode.re';
   console.log('Writing ' + outFileName);
   fs.writeFileSync(outFileName, compiled);
 })();
