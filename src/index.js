@@ -13,7 +13,10 @@ require('codemirror/mode/mllike/mllike');
 
 var $ = require('jquery');
 
+/*
 var scriptSource = "examples/example_003.js";
+*/
+var scriptSource = "src/example.js";
 
 var libSource = "src/lib.js";
 
@@ -780,6 +783,9 @@ function F(index, args, f) {
     /*
     console.log(funTypeName, funType);
     */
+    if (!(funTypeName in state.reasonTypes)) {
+      state.reasonTypes[funTypeName] = {};
+    }
     state.reasonTypes[funTypeName].decl = funType;
   } else {
     /* Anonymous function */
@@ -791,6 +797,9 @@ function F(index, args, f) {
         var node = state.astNodes[i];
         if (node.type == 'Identifier') {
           var funTypeName = 'usageFun' + capitalizeFirstLetter(node.name) + 'T';
+          if (!(funTypeName in state.reasonTypes)) {
+            state.reasonTypes[funTypeName] = {};
+          }
           state.reasonTypes[funTypeName].decl = funType;
         }
       }
