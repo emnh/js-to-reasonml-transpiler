@@ -18,7 +18,10 @@ function timeout(ms) {
   */
   await page.goto('http://localhost:8080/index.html', {"waitUntil" : "networkidle0"} );
   const source = fs.readFileSync(process.argv[2], 'utf8');
+  /*
   var result = await page.evaluate((source) => Promise.resolve(compile(source)), source);
+  */
+  var result = await page.evaluate((source) => compile(source), source);
   console.log(result);
   /*
   await page.screenshot({path: 'example.png', fullPage: true});
