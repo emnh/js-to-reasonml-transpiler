@@ -13,7 +13,7 @@ require('codemirror/mode/mllike/mllike');
 
 var $ = require('jquery');
 
-var scriptSource = "examples/example_009.js";
+var scriptSource = "examples/example_011.js";
 
 var libSource = "src/lib.js";
 
@@ -56,6 +56,7 @@ function initState(code) {
     astNodes: [],
     astNodeParents: {},
     astNodeObjects: [],
+    astMutables: {},
     astNodesDebug: {}
   };
 };
@@ -312,7 +313,7 @@ function addExtern(externName, value) {
     var oldDecl = declareExtern(externName, state.reasonExterns[externName]);
     if (decl !== oldDecl) {
       // Disambiguate by argument types
-      console.log("disambiguate", externName);
+      // console.log("disambiguate", externName);
       externName += value.argTypes.join('');
     } else {
       /*
@@ -406,21 +407,30 @@ var processNodes = {
   },
   VariableDeclaration: function(code, node) {
     var rml = [];
+    /*
     var rmla = [];
+    */
     var parentNode = state.astNodeParents[node[globalIndexName]];
+    /*
     var mutable = parentNode.type == 'ForStatement' && parentNode.init[globalIndexName] == node[globalIndexName];
+    */
     for (var i = 0; i < node.declarations.length; i++) {
       var name = node.declarations[i].id.reasonml;
       var value = node.declarations[i].init.reasonml;
+      var mutable =
+        'reasonmlMutable' in node.declarations[i].id &&
+        node.declarations[i].id.reasonmlMutable === true;
 
+      /*
       var s2 = 'let ' + name + ' = ' + name + 'Ref^';
       if (!s2.trim().endsWith(';')) {
         s2 += statementTerminator;
       }
       rmla.push(s2);
+      */
 
       if (mutable) {
-        name = name + 'Ref';
+        /* name = name + 'Ref'; */
         value = 'ref(' + value + ')';
       }
       var s = 'let ' + name + ' = ' + value;
@@ -430,7 +440,9 @@ var processNodes = {
       rml.push(s);
     }
     node.reasonml = rml.join('\n');
+    /*
     node.reasonmlAlias = rmla.join('\n');
+    */
     return node;
   },
   Literal: function(code, node) {
@@ -453,15 +465,23 @@ var processNodes = {
     return node;
   },
   ExpressionStatement: function(code, node) {
-    /* TODO: check return type if let _ is necessary */
     var prefix = '';
+    var suffix = '';
     if (node.expression[globalTypeName] !== 'unit' && node.expression[globalTypeName] !== undefined) {
+      /*
+      console.log(node.expression[globalTypeName]);
+      */
+      /*
       prefix = 'let _ = ';
+      */
+      /*
+      suffix = '|> ignore';
+      */
     };
     /*
     console.log(getCode(code, node), node.expression[globalTypeName]);
     */
-    node.reasonml = prefix + node.expression.reasonml;
+    node.reasonml = prefix + node.expression.reasonml + suffix;
     if (!node.reasonml.trim().endsWith(';')) {
       node.reasonml += statementTerminator;
     }
@@ -505,8 +525,15 @@ var processNodes = {
       var externName = qual + getExternName(code, node);
       var attributes = ['[@bs.set]'];
       var argTypes = [node.object[globalTypeName], parentNode.right[globalTypeName]];
+      /*
       var retType = 'unit';
+      */
+      var retType = parentNode[globalTypeName];
       var callName = node.property.name;
+      if (node.computed) {
+        attributes = ['[@bs.set_index]'];
+        callName = '';
+      }
       var value = {
         attributes: attributes,
         argTypes: argTypes,
@@ -531,13 +558,19 @@ var processNodes = {
     var [parts, modName, modResolved] = getModName(code, node);
     var externName = qual + getExternName(code, node);
     var attributes = ['[@bs.get]'];
-    var argTypes = [node.object[globalTypeName]];
-    if (modName !== null && modName in modMap) {
-      attributes = ['[@bs.val]'];
-    } else {
-      modName = null;
-    }
     var callName = node.property.name;
+    var argTypes = [node.object[globalTypeName]];
+    if (node.computed) {
+      attributes = ['[@bs.get_index]'];
+      callName = '';
+      argTypes.push(node.property[globalTypeName]);
+    } else {
+      if (modName !== null && modName in modMap) {
+        attributes = ['[@bs.val]'];
+      } else {
+        modName = null;
+      }
+    }
     var value = {
       attributes: attributes,
       argTypes: argTypes,
@@ -560,7 +593,13 @@ var processNodes = {
       /*
       node.reasonml = externName + '(' + node.object.reasonml + ')';
       */
-      node.reasonml = '(' + node.object.reasonml + ' |> ' + externName + ')';
+      if (!node.computed) {
+        node.reasonml = '(' + node.object.reasonml + ' |. ' + externName + ')';
+      } else {
+        node.reasonml =
+          '(' + node.object.reasonml + ' |. ' + externName + 
+          '(' + node.property.reasonml + ')' + ')';
+      }
     }
     return node;
   },
@@ -602,12 +641,21 @@ var processNodes = {
         parentNode2.type == 'ForStatement' && 
         parentNode2.test[globalIndexName] == parentNode[globalIndexName];
       var name = node.name;
+      mutable = mutable || name in state.astMutables;
+      node.reasonmlMutable = mutable;
+      var deref = '^';
+      if (parentNode.type == 'VariableDeclarator' ||
+          (parentNode.type == 'AssignmentExpression' && 
+           parentNode.left[globalIndexName] == node[globalIndexName]) ||
+          parentNode.type == 'UpdateExpression') {
+        deref = '';
+      }
       /* TODO: optimize with dict */
       if (reserved.includes(name)) {
         name = name + '_';
       }
       if (mutable) {
-        node.reasonml = name + 'Ref^';
+        node.reasonml = name + 'Ref' + deref;
       } else {
         node.reasonml = name;
       }
@@ -644,8 +692,8 @@ var processNodes = {
         }
         paddedOp = ' ' + op2 + ' ';
         node.reasonml =
-          'let ' + node.left.reasonml + ' = ' +
-          node.left.reasonml + paddedOp + '(' + node.right.reasonml + ')';
+          node.left.reasonml + ' := ' +
+          node.left.reasonml + '^' + paddedOp + '(' + node.right.reasonml + ')';
       }
     }
     return node;
@@ -657,7 +705,9 @@ var processNodes = {
     }
     var left = node.left.reasonml;
     var right = node.right.reasonml;
-    if (node[globalTypeName] == 'float') {
+    if (node[globalTypeName] === 'float' ||
+        node.left[globalTypeName] === 'float' ||
+        node.right[globalTypeName] === 'float') {
       operator = operator + '.';
       if (node.left[globalTypeName] == 'int') {
         left = 'float_of_int(' + left + ')';
@@ -728,9 +778,9 @@ var processNodes = {
       throw(new Error('prefix operator not implemented'));
     }
     if (node.operator == '++') {
-      node.reasonml = '' + node.argument.reasonml + 'Ref := ' + node.argument.reasonml + ' + 1';
+      node.reasonml = '' + node.argument.reasonml + ' := ' + node.argument.reasonml + '^ + 1';
     } else if (node.operator == '--') {
-      node.reasonml = '' + node.argument.reasonml + 'Ref := ' + node.argument.reasonml + ' - 1';
+      node.reasonml = '' + node.argument.reasonml + ' := ' + node.argument.reasonml + '^ - 1';
     } else {
       throw(new Error('suffix operator not implemented: ' + node.operator));
     }
@@ -740,7 +790,9 @@ var processNodes = {
     node.reasonml = 
       node.init.reasonml +
       'while (' + node.test.reasonml + ') {\n' +
+        /*
       node.init.reasonmlAlias +
+      */
       node.body.reasonml + statementTerminator +
       node.update.reasonml + statementTerminator +
       '}' + statementTerminator;
@@ -764,6 +816,19 @@ var processNodes = {
       }
     }
     node.reasonml = 'if (' + first + ') {' + second + '} else {' + third + '}';
+    return node;
+  },
+  UnaryExpression: function(code, node) {
+    if (node.prefix != true) {
+      throw(new Error('suffix unary operator not implemented'));
+    }
+    if (node.operator == '+') {
+      node.reasonml = '(+ ' + node.argument.reasonml + ')';
+    } else if (node.operator == '-') {
+      node.reasonml = '(- ' + node.argument.reasonml + ')';
+    } else {
+      throw(new Error('prefix unary operator not implemented: ' + node.operator));
+    }
     return node;
   },
   BogusTemplate: function(code, node) {
@@ -800,7 +865,14 @@ function postProcess(code, parentNode, node) {
 };
 
 function U(index, arg) {
-  state.astNodes[index][globalTypeName] = getType(arg, state.astNodes[index]);
+  var node = state.astNodes[index];
+  if (node.type == 'AssignmentExpression' && node.left.type == 'Identifier') {
+    state.astMutables[node.left.name] = true;
+  }
+  if (node.type == 'UpdateExpression' && node.argument.type == 'Identifier') {
+    state.astMutables[node.argument.name] = true;
+  }
+  node[globalTypeName] = getType(arg, node);
   state.astNodeObjects[index] = arg;
   state.astNodesDebug[index] = arg;
   return arg;
@@ -891,7 +963,7 @@ function postProcessTypes(code, parentNode, node) {
     'VariableDeclaration': {},
     'FunctionDeclaration': {},
     'ExpressionStatement': {},
-    'AssignmentExpression': {},
+    /* 'AssignmentExpression': {}, */
     'Program': {},
     'Property': {},
     'Line': {},
@@ -941,9 +1013,12 @@ function postProcessTypes(code, parentNode, node) {
     };
     return checkNodePath(node, h);
   };
-  var checkNodeParent = function(node, parentType, prop) {
+  var checkNodeParent = function(node, parentType, prop, extraCheck) {
+    if (extraCheck === undefined) {
+      extraCheck = function() { return true; };
+    }
     var parentNode = state.astNodeParents[node[globalIndexName]];
-    if (parentNode != null) {
+    if (parentNode != null && extraCheck(parentNode)) {
       if (parentNode.type == parentType) {
         if (prop in parentNode) {
           if (parentNode[prop][globalIndexName] === node[globalIndexName]) {
@@ -966,7 +1041,9 @@ function postProcessTypes(code, parentNode, node) {
     return checkNodeParent(node, 'AssignmentExpression', 'left');
   };
   var checkNodeParentMemberProperty = function(node) {
-    return checkNodeParent(node, 'MemberExpression', 'property');
+    return checkNodeParent(node, 'MemberExpression', 'property', function(node) {
+      return !node.computed;
+    });
   };
   var checkNodeParentCallCallee = function(node) {
     return checkNodeParent(node, 'CallExpression', 'callee');
