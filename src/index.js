@@ -1171,9 +1171,11 @@ function rewrite(code, ast, postProcess) {
 function declareTypes(body, externs, firstGenTypes) {
   var types = [];
   /*
+   * Fake topological sort :p
    * Pass 0: types without declaration
    * Pass 1: types with declaration, but no functions
    * Pass 2: types with declaration, only functions
+   * TODO: Real topological sort.
    * */
   for (var pass = 0; pass < 3; pass++) {
     for (var name in state.reasonTypes) {
