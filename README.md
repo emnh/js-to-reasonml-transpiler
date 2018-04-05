@@ -65,6 +65,18 @@ npm start
 
 Go to http://localhost:8080/test .
 
+## Running tests
+
+
+```bash
+# First of all, replace the path to the compiler
+sed -i s@bs-platform/bin/bsb.exe@bs-platform/lib/bsb.exe@ node_modules/bsb-js/index.js
+# compile tests script
+npm run webpack
+# run tests script
+node ./dist/runtests.js
+```
+
 # Alternatives
 
  - [Jeason](https://github.com/chenglou/jeason) is another approach using Flow.

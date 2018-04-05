@@ -4,6 +4,13 @@ var esprima = require('esprima');
 
 var escodegen = require('escodegen');
 
+export var debug = false;
+
+var consoleLog = console.log;
+if (!debug) {
+  consoleLog = function() {};
+}
+
 var modMap = {
   'PIXI': 'pixi.js',
   'THREE': 'three.js'
@@ -13,7 +20,8 @@ var globalsMap = {
   'document': {},
   'window': {},
   'console': {},
-  'Math': {}
+  'Math': {},
+  'fakeConsole': {}
 };
 
 var reserved = 'and,as,assert,asr,begin,class,constraint,do,done,downto,else,end,exception,external,false,for,fun,function,functor,if,in,include,inherit,initializer,land,lazy,let,lor,lsl,lsr,lxor,match,method,mod,module,mutable,new,nonrec,object,of,open,or,private,rec,sig,struct,then,to,true,try,type,val,virtual,when,while,with';
@@ -119,7 +127,7 @@ function getType(obj, rootNode, marker) {
             var t2 = getType(obj[i], rootNode, marker);
             if (t !== t2) {
               /*
-              console.log("mixed array", t, t2);
+              consoleLog("mixed array", t, t2);
               */
               return 'array(unknownT)';
             }
@@ -293,17 +301,17 @@ function getModName(code, node) {
 function addExtern(externName, value) {
   var decl = declareExtern(externName, value);
   /*
-  console.log("decl", decl);
+  consoleLog("decl", decl);
   */
   if (!value.isNotExtern && externName in state.reasonExterns) {
     var oldDecl = declareExtern(externName, state.reasonExterns[externName]);
     if (decl !== oldDecl) {
       // Disambiguate by argument types
-      // console.log("disambiguate", externName);
+      // consoleLog("disambiguate", externName);
       externName += value.argTypes.join('').replace(/[.()]/g, '');
     } else {
       /*
-      console.log("no disambiguate", externName);
+      consoleLog("no disambiguate", externName);
       */
     }
   }
@@ -444,7 +452,7 @@ var processNodes = {
       if (isRequire) {
         /* TODO: a bit hacky. only supports var lib = require("string"); */
         modMap[name] = node.declarations[i].init.arguments[0].value;
-        console.log(modMap);
+        consoleLog(modMap);
       } else {
         rml.push(s);
       }
@@ -489,7 +497,7 @@ var processNodes = {
     var suffix = '';
     if (node.expression[globalTypeName] !== 'unit' && node.expression[globalTypeName] !== undefined) {
       /*
-      console.log(node.expression[globalTypeName]);
+      consoleLog(node.expression[globalTypeName]);
       */
       /*
       prefix = 'let _ = ';
@@ -499,7 +507,7 @@ var processNodes = {
       */
     };
     /*
-    console.log(getCode(code, node), node.expression[globalTypeName]);
+    consoleLog(getCode(code, node), node.expression[globalTypeName]);
     */
     node.reasonml = prefix + node.expression.reasonml + suffix;
     if (!node.reasonml.trim().endsWith(';')) {
@@ -508,7 +516,7 @@ var processNodes = {
     return node;
   },
   CallExpression: function(code, node) {
-    if (getCode(code, node).startsWith("console.log")) {
+    if (getCode(code, node).startsWith("consoleLog")) {
       node.reasonml = 'Js.log(' + joinArgs(node) + ')';
       return node;
     } else {
@@ -899,7 +907,7 @@ function F(index, args, f) {
     /* Named function */
     var funTypeName = 'usageFun' + capitalizeFirstLetter(parentNode.id.name) + 'T';
     /*
-    console.log(funTypeName, funType);
+    consoleLog(funTypeName, funType);
     */
     if (!(funTypeName in state.reasonTypes)) {
       state.reasonTypes[funTypeName] = {};
@@ -925,7 +933,7 @@ function F(index, args, f) {
   }
   parentNode[globalTypeName] = funType;
   /*
-  console.log(parentNode[globalTypeName]);
+  consoleLog(parentNode[globalTypeName]);
   */
   return retval;
 };
@@ -965,7 +973,8 @@ function postProcessTypes(code, parentNode, node) {
     'Block': {},
     'BlockStatement': {},
     'ReturnStatement': {},
-    'ForStatement': {}
+    'ForStatement': {},
+    'IfStatement': {}
   };
   var checkIt = function(ignores, propName) {
     var f = function(node) {
@@ -994,7 +1003,7 @@ function postProcessTypes(code, parentNode, node) {
     var h = function(node) {
       /*
       if (propName == 'body') {
-        console.log("done", done);
+        consoleLog("done", done);
       };
       */
       if (done) {
@@ -1060,7 +1069,7 @@ function postProcessTypes(code, parentNode, node) {
   var isNewCallee = checkIt({ 'NewExpression': {} }, 'arguments') && node.type != 'NewExpression';
   var isAssign = checkNodeParentAssign(node);
   /*
-  console.log(
+  consoleLog(
     node.type,
     getCode(code, node),
     !(node.type in directIgnores),
@@ -1104,10 +1113,10 @@ function postProcessTypes(code, parentNode, node) {
   var isFunExprBody = checkNodeParentFunctionExprBody(node);
   if (isFunBody || isFunExprBody) {
     var expr = '() => { return F(' + node[globalIndexName] + ', arguments, function() {}); }';
-    console.log(expr);
+    consoleLog(expr);
     var newNode = esprima.parse(expr).body[0].expression.body;
     newNode.isU = true;
-    console.log(newNode);
+    consoleLog(newNode);
     newNode.body[0].argument.arguments[2].body = node;
     return newNode;
   };
@@ -1293,10 +1302,12 @@ export function compile(data, evalTimeout) {
 
   syntax = escodegen.attachComments(syntax, syntax.comments, syntax.tokens);
 
-  console.log(syntax);
+  /*
+  consoleLog(syntax);
+  */
 
   /*
-  console.log(JSON.stringify(syntax, null, 2));
+  consoleLog(JSON.stringify(syntax, null, 2));
    */
   state = initState(data);
 
@@ -1318,34 +1329,35 @@ export function compile(data, evalTimeout) {
   var code = escodegen.generate(syntaxForTypes, option);
 
   /*
-  console.log(esprima.parse('V(0, {a: 2})["a"];'));
+  consoleLog(esprima.parse('V(0, {a: 2})["a"];'));
   */
 
-  console.log(code);
+  consoleLog(code);
 
   eval(code);
 
   var promise = new Promise((resolve, reject) => {
     var afterEval = function() {
-      var syntaxReasonML = rewrite(data, syntax2, postProcess);
-      
-      var decl = declareExterns().join('\n');
+      try {
+        var syntaxReasonML = rewrite(data, syntax2, postProcess);
+        
+        var decl = declareExterns().join('\n');
 
-      var types = declareTypes(syntaxReasonML.reasonml, decl, '');
-      
-      /* TODO: do recursive lookup of types instead of just 2 steps */
-      var types2 = declareTypes(syntaxReasonML.reasonml, decl, types.join('\n'));
+        var types = declareTypes(syntaxReasonML.reasonml, decl, '');
+        
+        /* TODO: do recursive lookup of types instead of just 2 steps */
+        var types2 = declareTypes(syntaxReasonML.reasonml, decl, types.join('\n'));
 
-      var header = types2.join('\n') + '\n' + decl;
+        var header = types2.join('\n') + '\n' + decl;
 
-      var body = syntaxReasonML.reasonml;
+        var body = syntaxReasonML.reasonml;
 
-      var program = header + '\n' + body;
+        var program = header + '\n' + body;
 
-      /*
-      console.log(program);
-      */
-      resolve(program);
+        resolve(program);
+      } catch(error) {
+        reject(error);
+      }
     };
     setTimeout(afterEval, evalTimeout);
   });

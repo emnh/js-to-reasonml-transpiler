@@ -1,9 +1,9 @@
 import scriptData from './example-node.txt';
 var Lib = require('./lib.js');
 
-var evalTimeout = 2000;
-
 var fs = require('fs');
+
+var evalTimeout = 2000;
 
 var scriptData = fs.readFileSync('./src/example-node.txt', 'utf-8');
 
