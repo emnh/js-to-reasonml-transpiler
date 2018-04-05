@@ -301,11 +301,12 @@ function applyExpression(opts, code, node) {
   var createId = 'BLAH';
   if (opts.type == 'new') {
     prefix = 'new';
-    createId = prefix + getExternName(code, node.callee) + node.arguments.length.toString();
+    createId = prefix + getExternName(code, node.callee);
   } else if (opts.type == 'call') {
     prefix = '';
     createId = getExternCallName(code, node.callee);
   }
+  createId += node.arguments.length.toString();
   if (prefix == '') {
     createId = lowercaseFirstLetter(createId);
   };
