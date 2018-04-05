@@ -22,10 +22,12 @@
   "dependencies": {
     "bs-platform": "^2.2.3",
     "codemirror": "^5.36.0",
+    "css-loader": "^0.28.11",
     "escodegen": "^1.9.1",
     "esprima": "^4.0.0",
     "jquery": "^3.3.1",
     "pixi.js": "^4.7.1",
-    "puppeteer": "^1.2.0"
+    "puppeteer": "^1.2.0",
+    "style-loader": "^0.20.3"
   }
 }

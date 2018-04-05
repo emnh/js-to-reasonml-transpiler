@@ -1,4 +1,7 @@
 /* PIXI required only for convenience of fast dev iter on example */
+
+import css from '../css/codemirror.css';
+
 var PIXI = require('pixi.js');
 
 var esprima = require('esprima');
@@ -527,6 +530,7 @@ var processNodes = {
   MemberExpression: function(code, node) {
     var parentNode = state.astNodeParents[node[globalIndexName]];
     var useRight = null;
+    var qual = '';
     if (parentNode.type == 'AssignmentExpression' &&
         parentNode.left[globalIndexName] == node[globalIndexName]) {
       qual = 'set';
@@ -1374,8 +1378,10 @@ function compile(data) {
 
 $('document').ready(function() {
   /* Load CodeMirror CSS */
+  /*
   $('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href',
         'css/codemirror.css'));
+        */
 
   $.get(
     scriptSource,

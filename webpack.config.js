@@ -15,5 +15,13 @@ module.exports = {
     compress: true,
     port: 8080
   },
-  plugins: []
+  plugins: [],
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        use: [ 'style-loader', 'css-loader' ]
+      }
+    ]
+  }
 };
