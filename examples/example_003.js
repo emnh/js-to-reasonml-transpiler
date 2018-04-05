@@ -25,12 +25,9 @@ container.y = app.screen.height / 2;
 container.pivot.x = container.width / 2;
 container.pivot.y = container.height / 2;
 
-var rotate = function(delta) {
+// Listen for animate update
+app.ticker.add(function(delta) {
     // rotate the container!
     // use delta to create frame-independent transform
     container.rotation -= 0.01 * delta;
-};
-rotate(0.01);
-
-// Listen for animate update
-app.ticker.add(rotate);
+  });
