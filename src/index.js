@@ -73,17 +73,15 @@ function getType(obj, rootNode, marker) {
     }
     var usageT = prefix + externName + 'T';
     state.reasonTypes[usageT] = {};
+    /*
     if (isFun) {
       var usageArgT = prefix + externName + 'ArgT';
       var usageRetT = prefix + externName + 'RetT';
       state.reasonTypes[usageT] = {
         decl: usageArgT + ' => ' + usageRetT + ' and ' + usageArgT + ' and ' + usageRetT
       };
-      /*
-      state.reasonTypes[usageArgT] = {};
-      state.reasonTypes[usageRetT] = {};
-      */
     }
+    */
     obj[globalTypeName] = usageT;
     obj[globalTypeDecl] = state.reasonTypes[obj[globalTypeName]];
     return usageT;
@@ -146,6 +144,9 @@ function getType(obj, rootNode, marker) {
           if (prop == globalIdName) {
             continue;
           };
+          if (!prop.match(/^[a-z0-9]+$/i)) {
+            continue;
+          }
           if ('hasOwnProperty' in obj && obj.hasOwnProperty(prop) && !isFunction(obj[prop])) {
             childTypes.push('"' + prop + '": ' + getType(obj[prop], rootNode, marker));
             propCount++;
@@ -228,6 +229,9 @@ function getIdParts(code, node) {
     }
   };
   walk(code, null, node, savePart);
+  if (parts.length > 4) {
+    parts = parts.slice(parts.length - 4);
+  }
   return parts;
 }
 
@@ -417,10 +421,11 @@ var processNodes = {
     return node;
   },
   CallExpression: function(code, node) {
+    /*
     var funName = 'usageFun' + getExternName(code, node.callee) + 'T';
     var funArg = 'usageFun' + getExternName(code, node.callee) + 'ArgT';
     var funRet = 'usageFun' + getExternName(code, node.callee) + 'RetT';
-    /* Resolve return type of local functions */
+    // Resolve return type of local functions
     if (funName in state.reasonTypes) {
       var argTypes = []
       addArgTypes(node, argTypes);
@@ -431,6 +436,7 @@ var processNodes = {
           .replace(funRet, node[globalTypeName])
           .replace(funArg, argTypes);
     }
+    */
     if (getCode(code, node).startsWith("console.log")) {
       node.reasonml = 'Js.log(' + joinArgs(node) + ')';
       return node;
@@ -744,6 +750,45 @@ function U(index, arg) {
   return arg;
 };
 
+function F(index, args, f) {
+  var retval = f();
+  var node = state.astNodes[index];
+  var parentNode = state.astNodeParents[node[globalIndexName]];
+  var parameters = parentNode.params;
+  var argTypes = [];
+  for (var i = 0; i < args.length; i++) {
+    var param = parameters[i];
+    if (param === undefined) {
+      continue;
+      /*
+      param = parentNode;
+      */
+    }
+    argTypes.push(getType(args[i], param));
+  }
+  var retType = getType(retval, parentNode);
+  var argTypesStr = '(' + argTypes.join(', ') + ')';
+  if (argTypes.length == 0) {
+    argTypesStr = 'unit';
+  }
+  var funType = argTypesStr + ' => ' + retType;
+  if (parentNode.id != null) {
+    /* Named function */
+    var funTypeName = 'usageFun' + capitalizeFirstLetter(parentNode.id.name) + 'T';
+    /*
+    console.log(funTypeName, funType);
+    */
+    state.reasonTypes[funTypeName].decl = funType;
+  } else {
+    /* Anonymous function */
+  }
+  parentNode[globalTypeName] = funType;
+  /*
+  console.log(parentNode[globalTypeName]);
+  */
+  return retval;
+};
+
 function getNodePath(node, f) {
   var path = [];
   while (state.astNodeParents[node[globalIndexName]] != null) {
@@ -901,6 +946,25 @@ function postProcessTypes(code, parentNode, node) {
     newNode.isU = true;
     return newNode;
   }
+  var checkNodeParentFunctionDeclBody = function(node) {
+    var a = checkNodeParent(node, 'FunctionDeclaration', 'body');
+    return a;
+  };
+  var checkNodeParentFunctionExprBody = function(node) {
+    var b = checkNodeParent(node, 'FunctionExpression', 'body');
+    return b;
+  };
+  var isFunBody = checkNodeParentFunctionDeclBody(node);
+  var isFunExprBody = checkNodeParentFunctionExprBody(node);
+  if (isFunBody || isFunExprBody) {
+    var expr = '() => { return F(' + node[globalIndexName] + ', arguments, function() {}); }';
+    console.log(expr);
+    var newNode = esprima.parse(expr).body[0].expression.body;
+    newNode.isU = true;
+    console.log(newNode);
+    newNode.body[0].argument.arguments[2].body = node;
+    return newNode;
+  };
   return node;
 };
 
@@ -941,26 +1005,34 @@ function rewrite(code, ast, postProcess) {
 
 function declareTypes(body, externs, firstGenTypes) {
   var types = [];
-  for (var name in state.reasonTypes) {
-    var value = state.reasonTypes[name];
-    if ('decl' in value) {
-      value = value.decl;
-    } else {
-      value = '';
+  for (var pass = 0; pass < 2; pass++) {
+    for (var name in state.reasonTypes) {
+      var value = state.reasonTypes[name];
+      if ('decl' in value) {
+        if (pass == 0) {
+          continue;
+        }
+        value = value.decl;
+      } else {
+        if (pass != 0) {
+          continue;
+        }
+        value = '';
+      };
+      var s;
+      if (value != '') {
+        s = 'type ' + name + ' = ' + value + ';';
+      } else {
+        s = 'type ' + name + ';';
+      }
+      /* Only list types that are used */
+      if (body.includes(name) || externs.includes(name) || firstGenTypes.includes(name)) {
+        types.push(s);
+      } else {
+        // types.push('/* /* Unused type: */ ' + s + ' */');
+      };
     };
-    var s;
-    if (value != '') {
-      s = 'type ' + name + ' = ' + value + ';';
-    } else {
-      s = 'type ' + name + ';';
-    }
-    /* Only list types that are used */
-    if (body.includes(name) || externs.includes(name) || firstGenTypes.includes(name)) {
-      types.push(s);
-    } else {
-      // types.push('/* /* Unused type: */ ' + s + ' */');
-    };
-  };
+  }
   return types;
 };
 
@@ -1216,3 +1288,4 @@ $('document').ready(function() {
 });
 
 window.compile = compile;
+window.esprima = esprima;
