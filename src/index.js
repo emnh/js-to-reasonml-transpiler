@@ -13,7 +13,7 @@ require('codemirror/mode/mllike/mllike');
 
 var $ = require('jquery');
 
-var scriptSource = "examples/example_004.js";
+var scriptSource = "examples/example_003.js";
 
 var libSource = "src/lib.js";
 
@@ -55,6 +55,7 @@ function initState(code) {
     astCode: code,
     astNodes: [],
     astNodeParents: {},
+    astNodeObjects: [],
     astNodesDebug: {}
   };
 };
@@ -746,6 +747,7 @@ function postProcess(code, parentNode, node) {
 
 function U(index, arg) {
   state.astNodes[index][globalTypeName] = getType(arg, state.astNodes[index]);
+  state.astNodeObjects[index] = arg;
   state.astNodesDebug[index] = arg;
   return arg;
 };
@@ -781,6 +783,18 @@ function F(index, args, f) {
     state.reasonTypes[funTypeName].decl = funType;
   } else {
     /* Anonymous function */
+    // Update all AST node types which have an object reference to the function
+    var parentIndex = parentNode[globalIndexName];
+    /* TODO: optimize */
+    for (var i = 0; i < state.astNodeObjects.length; i++) {
+      if (i != parentIndex && state.astNodeObjects[i] === state.astNodeObjects[parentIndex]) {
+        var node = state.astNodes[i];
+        if (node.type == 'Identifier') {
+          var funTypeName = 'usageFun' + capitalizeFirstLetter(node.name) + 'T';
+          state.reasonTypes[funTypeName].decl = funType;
+        }
+      }
+    }
   }
   parentNode[globalTypeName] = funType;
   /*
