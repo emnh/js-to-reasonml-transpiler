@@ -1,0 +1,7 @@
+var fs = require('fs');
+
+var example = fs.readFileSync('src/example-node.txt', 'utf-8');
+
+for (var i = 0; i < 10; i++) {
+  console.log(i);
+}

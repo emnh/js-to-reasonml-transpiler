@@ -1,6 +1,7 @@
 *.swp
 /dist/index.js
 /dist/test.js
+/dist/node.js
 .DS_Store
 .merlin
 .bsb.lock

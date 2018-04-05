@@ -5,7 +5,7 @@
     "build": "bsb -make-world",
     "bsbwatch": "bsb -make-world -w",
     "clean": "bsb -clean-world",
-    "webpack": "webpack",
+    "webpack": "webpack -w",
     "dev": "webpack-dev-server --hot",
     "start": "concurrently --raw 'npm run bsbwatch' 'npm run dev'"
   },
@@ -29,6 +29,7 @@
     "pixi.js": "^4.7.1",
     "puppeteer": "^1.2.0",
     "raw-loader": "^0.5.1",
-    "style-loader": "^0.20.3"
+    "style-loader": "^0.20.3",
+    "window-or-global": "^1.0.1"
   }
 }
