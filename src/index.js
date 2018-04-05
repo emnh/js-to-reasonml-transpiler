@@ -552,6 +552,7 @@ var processNodes = {
         parentNode2.type == 'ForStatement' && 
         parentNode2.test[globalIndexName] == parentNode[globalIndexName];
       var name = node.name;
+      /* TODO: optimize with dict */
       if (reserved.includes(name)) {
         name = name + '_';
       }
