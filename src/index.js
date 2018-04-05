@@ -503,22 +503,6 @@ var processNodes = {
     return node;
   },
   CallExpression: function(code, node) {
-    /*
-    var funName = 'usageFun' + getExternName(code, node.callee) + 'T';
-    var funArg = 'usageFun' + getExternName(code, node.callee) + 'ArgT';
-    var funRet = 'usageFun' + getExternName(code, node.callee) + 'RetT';
-    // Resolve return type of local functions
-    if (funName in state.reasonTypes) {
-      var argTypes = []
-      addArgTypes(node, argTypes);
-      argTypes = '(' + argTypes.join(', ') + ')';
-      state.reasonTypes[funName].decl =
-        state.reasonTypes[funName]
-          .decl
-          .replace(funRet, node[globalTypeName])
-          .replace(funArg, argTypes);
-    }
-    */
     if (getCode(code, node).startsWith("console.log")) {
       node.reasonml = 'Js.log(' + joinArgs(node) + ')';
       return node;
@@ -634,22 +618,6 @@ var processNodes = {
         callName: callName
       };
       node.reasonml = externName;
-    /*
-    } else if (node.name in modMap) {
-      var externName = 'mod' + node.name;
-      var attributes = ['[@bs.val]', '[@bs.module "' + modMap[node.name] + '"]'];
-      var argTypes = ['unit'];
-      var retType = node[globalTypeName];
-      var callName = node.name;
-      state.reasonExterns[externName] = {
-        noargs: true,
-        attributes: attributes,
-        argTypes: argTypes,
-        retType: retType,
-        callName: callName
-      };
-      node.reasonml = externName;
-    */
     } else {
       var parentNode = state.astNodeParents[node[globalIndexName]];
       var parentNode2 = state.astNodeParents[parentNode[globalIndexName]];
