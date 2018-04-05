@@ -17,6 +17,8 @@ I am using :
 
 This section lists workarounds for transpilations not implemented yet.
 
+ - Initialize all (non-int) variables. Default value is set to 0 if not
+   initialized and a TODO comment is added.
  - Reorder functions so that they are called after they are declared.
  - Tweak integer values that should be floats, e.g. write 0.5 + 0.5 instead of
    1 if you want the value to be considered float.
@@ -28,6 +30,8 @@ This section lists workarounds for transpilations not implemented yet.
    needed. TODO: create option for this on web page.
 
 After transpile:
+ - Reorder type definitions if necessary. There is a TODO issue on sorting them
+   topologically.
  - Add |> ignore or let _ = to avoid warnings. I don't do it automatically
    because it will be hard to detect when it's necessary and too many of them
    clutters the code.
