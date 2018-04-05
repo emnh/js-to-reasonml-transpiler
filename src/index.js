@@ -13,7 +13,7 @@ require('codemirror/mode/mllike/mllike');
 
 var $ = require('jquery');
 
-var scriptSource = "examples/example_002.js";
+var scriptSource = "examples/example_004.js";
 
 var libSource = "src/lib.js";
 
@@ -29,8 +29,12 @@ var globalsMap = {
   'Math': {}
 };
 
+var reserved = 'and,as,assert,asr,begin,class,constraint,do,done,downto,else,end,exception,external,false,for,fun,function,functor,if,in,include,inherit,initializer,land,lazy,let,lor,lsl,lsr,lxor,match,method,mod,module,mutable,new,nonrec,object,of,open,or,private,rec,sig,struct,then,to,true,try,type,val,virtual,when,while,with';
+reserved = reserved.split(',');
+
 var state;
 
+var evalTimeout = 2000;
 var statementTerminator = ';\n';
 var globalIdName = '_ReasonMLId';
 var globalIndexName = '_ReasonMLIndex';
@@ -69,7 +73,6 @@ function getType(obj, rootNode, marker) {
     }
     var usageT = prefix + externName + 'T';
     state.reasonTypes[usageT] = {};
-    console.log("usageT", usageT);
     if (isFun) {
       var usageArgT = prefix + externName + 'ArgT';
       var usageRetT = prefix + externName + 'RetT';
@@ -137,9 +140,6 @@ function getType(obj, rootNode, marker) {
         };
       } else {
         var childTypes = [];
-        /*
-        console.log(obj);
-        */
         var propCount = 0;
         var propLimit = 10;
         for (var prop in obj) {
@@ -171,10 +171,6 @@ function getType(obj, rootNode, marker) {
       }
       break;
     default:
-      /*
-      console.log("UNKNOWNT");
-      console.log(obj);
-      */
       if (obj === undefined) {
         return 'unit';
       };
@@ -224,9 +220,23 @@ function lowercaseFirstLetter(string) {
   return string.charAt(0).toLowerCase() + string.slice(1);
 };
 
+function getIdParts(code, node) {
+  var parts = [];
+  var savePart = function(code, parentNode, node) {
+    if (node.type == 'Identifier') {
+      parts.push(node.name);
+    }
+  };
+  walk(code, null, node, savePart);
+  return parts;
+}
+
 function getExternName(code, node) {
+  /*
   var lexpr = getCode(code, node);
   var parts = lexpr.split('.');
+  */
+  var parts = getIdParts(code, node);
   var cparts = [];
   for (var i = 0; i < parts.length; i++) {
     cparts[i] = capitalizeFirstLetter(parts[i]);
@@ -235,8 +245,11 @@ function getExternName(code, node) {
 };
 
 function getExternCallName(code, node) {
+  /*
   var lexpr = getCode(code, node);
   var parts = lexpr.split('.');
+  */
+  var parts = getIdParts(code, node);
   var cparts = [];
   for (var i = 0; i < parts.length; i++) {
     if (i == 0) {
@@ -320,6 +333,11 @@ function applyExpression(opts, code, node) {
   };
   if (modName !== null && opts.type == 'new') {
     state.reasonExterns[externName].attributes.push('[@bs.module "' + modResolved + '"]');
+    if (parts.length > 2) {
+      for (var i = 1; i < parts.length - 1; i++) {
+        attributes.push('[@bs.scope "' + parts[i] + '"]');
+      }
+    }
   }
   node.reasonml = createId + "(" + objArg + reargs + ")";
   return node;
@@ -341,7 +359,7 @@ var processNodes = {
     var parentNode = state.astNodeParents[node[globalIndexName]];
     var mutable = parentNode.type == 'ForStatement' && parentNode.init[globalIndexName] == node[globalIndexName];
     for (var i = 0; i < node.declarations.length; i++) {
-      var name = node.declarations[i].id.name;
+      var name = node.declarations[i].id.reasonml;
       var value = node.declarations[i].init.reasonml;
 
       var s2 = 'let ' + name + ' = ' + name + 'Ref^';
@@ -523,10 +541,14 @@ var processNodes = {
       var mutable =
         parentNode2.type == 'ForStatement' && 
         parentNode2.test[globalIndexName] == parentNode[globalIndexName];
+      var name = node.name;
+      if (reserved.includes(name)) {
+        name = name + '_';
+      }
       if (mutable) {
-        node.reasonml = node.name + 'Ref^';
+        node.reasonml = name + 'Ref^';
       } else {
-        node.reasonml = node.name;
+        node.reasonml = name;
       }
     };
     return node;
@@ -582,12 +604,29 @@ var processNodes = {
       if (node.right[globalTypeName] == 'int') {
         right = 'float_of_int(' + right + ')';
       }
+    } else if (node[globalTypeName] == 'string' && operator == '+') {
+      operator = '++';
+      if (node.left[globalTypeName] == 'int') {
+        left = 'string_of_int(' + left + ')';
+      }
+      if (node.right[globalTypeName] == 'int') {
+        right = 'string_of_int(' + right + ')';
+      }
+      if (node.left[globalTypeName] == 'float') {
+        left = 'string_of_float(' + left + ')';
+      }
+      if (node.right[globalTypeName] == 'float') {
+        right = 'string_of_float(' + right + ')';
+      }
     }
     node.reasonml = '(' + left + ' ' + operator + ' ' + right + ')';
     return node;
   },
   FunctionDeclaration: function(code, node) {
-    node.reasonml = 'let ' + node.id.reasonml + ' = (' + joinParams(node) + ') => ' + node.body.reasonml;
+    node.reasonml =
+      'let ' + node.id.reasonml + 
+      ' = (' + joinParams(node) + ') => ' +
+      node.body.reasonml + statementTerminator;
     return node;
   },
   FunctionExpression: function(code, node) {
@@ -600,7 +639,7 @@ var processNodes = {
       var child = node.body[i];
       rml.push(child.reasonml);
     }
-    node.reasonml = '{\n' + rml.join('\n') + '\n' + '};\n';
+    node.reasonml = '{\n' + rml.join('\n') + '\n' + '}\n';
     return node;
   },
   ReturnStatement: function(code, node) {
@@ -641,9 +680,29 @@ var processNodes = {
       node.init.reasonml +
       'while (' + node.test.reasonml + ') {\n' +
       node.init.reasonmlAlias +
-      node.body.reasonml + '\n' +
+      node.body.reasonml + statementTerminator +
       node.update.reasonml + statementTerminator +
       '}' + statementTerminator;
+    return node;
+  },
+  ArrayExpression: function(code, node) {
+    var args = [];
+    for (var i = 0; i < node.elements.length; i++) {
+      args.push(node.elements[i].reasonml);
+    }
+    node.reasonml = '[|' + args.join(', ') + '|]';
+    return node;
+  },
+  ConditionalExpression: function(code, node) {
+    var first = node.test.reasonml;
+    var second = node.consequent.reasonml;
+    var third = node.alternate.reasonml;
+    if (node.consequent[globalTypeName] != node.alternate[globalTypeName]) {
+      if (node.consequent[globalTypeName] == 'string' && node.alternate[globalTypeName] == 'int') {
+        third = 'string_of_int(' + third + ')';
+      }
+    }
+    node.reasonml = 'if (' + first + ') {' + second + '} else {' + third + '}';
     return node;
   },
   BogusTemplate: function(code, node) {
@@ -983,16 +1042,6 @@ function compileAST(data) {
 
   walk(data, [], '', syntax, postProcessAST);
 
-  /*
-  var nodePaths = [];
-  for (var i = 0; i < state.astNodes.length; i++) {
-    var node = state.astNodes[i];
-    var path = getNodePath(node);
-    for (var j = 0; j < path.length; j++) {
-
-    }
-  }
-  */
   var s = nodePaths.join('\n');
   return s;
 }
@@ -1036,27 +1085,33 @@ function compile(data) {
   console.log(code);
 
   eval(code);
-  
-  var syntaxReasonML = rewrite(data, syntax2, postProcess);
-  
-  var decl = declareExterns().join('\n');
 
-  var types = declareTypes(syntaxReasonML.reasonml, decl, '');
-  
-  /* TODO: do recursive lookup of types instead of just 2 steps */
-  var types2 = declareTypes(syntaxReasonML.reasonml, decl, types.join('\n'));
+  var promise = new Promise((resolve, reject) => {
+    var afterEval = function() {
+      var syntaxReasonML = rewrite(data, syntax2, postProcess);
+      
+      var decl = declareExterns().join('\n');
 
-  var header = types2.join('\n') + '\n' + decl;
+      var types = declareTypes(syntaxReasonML.reasonml, decl, '');
+      
+      /* TODO: do recursive lookup of types instead of just 2 steps */
+      var types2 = declareTypes(syntaxReasonML.reasonml, decl, types.join('\n'));
 
-  var body = syntaxReasonML.reasonml;
+      var header = types2.join('\n') + '\n' + decl;
 
-  var program = header + '\n' + body;
+      var body = syntaxReasonML.reasonml;
 
-  /*
-  console.log(program);
-  */
+      var program = header + '\n' + body;
 
-  return program;
+      /*
+      console.log(program);
+      */
+      resolve(program);
+    };
+    setTimeout(afterEval, evalTimeout);
+  });
+
+  return promise;
 };
 
 $('document').ready(function() {
@@ -1077,7 +1132,7 @@ $('document').ready(function() {
           'Paste your code in the <a href="#exampleCode">Code to Transpile</a> ' +
           'and the script will try to convert it into ReasonML externs and code. ' +
           'WARNING: Example code will be evaled in a rewritten form to fill in the types. ' +
-          'Untriggered event handlers and functions will not be translated.' +
+          'Untriggered event handlers and functions will not be translated. ' +
           'Just some basics are supported for now, and it is sure to be buggy, ' + 
           'but it might be more helpful than starting from scratch.</p>' + 
           '<p>Make sure your example code does not clear the DOM, or you will lose the output boxes.</p>');
@@ -1123,10 +1178,11 @@ $('document').ready(function() {
       $("#loadlibs").on("click", function() {
         eval(editor2.getDoc().getValue());
       });
-      var transpile = function() {
+      var transpile = async function() {
         var result;
+        editor3.getDoc().setValue("Waiting for eval to load resources etc: " + evalTimeout + "ms...");
         try {
-          result = compile(editor.getDoc().getValue());
+          result = await compile(editor.getDoc().getValue());
         } catch(error) {
           result = error.stack.toString();
           editor3.getDoc().setValue(result);
@@ -1150,7 +1206,11 @@ $('document').ready(function() {
 
       $('body').append('<h2>Eval DOM Output</h2>');
 
-      transpile();
+      if (/HeadlessChrome/.test(window.navigator.userAgent)) {
+        console.log("Chrome headless detected. Expecting transpile to be called manually.");
+      } else {
+        transpile();
+      }
     },
     "text");
 });
