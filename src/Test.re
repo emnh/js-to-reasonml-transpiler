@@ -6,13 +6,7 @@ type appHTMLBodyElementT;
 
 type appHTMLCanvasElementT;
 
-type usagePIXIT;
-
-type usagePIXISettingsT;
-
-type usageFunPIXISpriteT = usageFunPIXISpriteArgT => usageFunPIXISpriteRetT
-and usageFunPIXISpriteArgT
-and usageFunPIXISpriteRetT;
+type usageFunSpriteT;
 
 type appSpriteT;
 
@@ -24,178 +18,168 @@ type appEventT;
 
 type appMemoryInfoT;
 
-type usageFunOnClickT = appEventT => int
-and usageFunOnClickArgT
-and usageFunOnClickRetT;
-
 type appContainerT;
 
-type smallObject16T = {. "backgroundColor": int};
+type smallObject0T = {. "backgroundColor": int};
 
-type smallObject17T = {
+type smallObject21T = {. "RESOLUTION": int};
+
+type smallObject42T = {
   .
   "LINEAR": int,
   "NEAREST": int
 };
 
-type smallObject18T = {. "memory": appMemoryInfoT};
+type smallObject63T = {. "memory": appMemoryInfoT};
 
-[@bs.val] [@bs.module "pixi.js"] external modPIXI : usagePIXIT = "PIXI";
+type usageFunOnClickT = appEventT => int;
 
 [@bs.new] [@bs.module "pixi.js"]
-external newPIXIApplication : (int, int, smallObject16T) => appApplicationT =
+external newApplication3 : (int, int, smallObject0T) => appApplicationT =
   "Application";
 
 [@bs.val] external document : appHTMLDocumentT = "document";
 
-[@bs.get]
-external getDocumentBody : appHTMLDocumentT => appHTMLBodyElementT = "body";
+[@bs.get] external getBody : appHTMLDocumentT => appHTMLBodyElementT = "body";
 
-[@bs.get]
-external getAppView : appApplicationT => appHTMLCanvasElementT = "view";
+[@bs.get] external getView : appApplicationT => appHTMLCanvasElementT = "view";
 
 [@bs.send]
-external documentBodyAppendChild :
+external appendChild1 :
   (appHTMLBodyElementT, appHTMLCanvasElementT) => appHTMLCanvasElementT =
   "appendChild";
 
 [@bs.val] [@bs.module "pixi.js"]
-external getPIXISettings : usagePIXISettingsT = "settings";
+external getSettings : smallObject21T = "settings";
 
 [@bs.set]
-external setPIXISettingsSCALE_MODE : (usagePIXISettingsT, int) => unit =
-  "SCALE_MODE";
+external setSCALE_MODE : (smallObject21T, int) => unit = "SCALE_MODE";
 
 [@bs.val] [@bs.module "pixi.js"] [@bs.scope "settings"]
-external getPIXISettingsSCALE_MODE : int = "SCALE_MODE";
+external getSCALE_MODE : int = "SCALE_MODE";
 
 [@bs.val] [@bs.module "pixi.js"]
-external getPIXISCALE_MODES : smallObject17T = "SCALE_MODES";
+external getSCALE_MODES : smallObject42T = "SCALE_MODES";
 
 [@bs.val] [@bs.module "pixi.js"] [@bs.scope "SCALE_MODES"]
-external getPIXISCALE_MODESNEAREST : int = "NEAREST";
+external getNEAREST : int = "NEAREST";
 
 [@bs.val] [@bs.module "pixi.js"]
-external getPIXISprite : usageFunPIXISpriteT = "Sprite";
+external getSprite : usageFunSpriteT = "Sprite";
 
-[@bs.send]
-external pixiSpriteFromImage : (usageFunPIXISpriteT, string) => appSpriteT =
-  "fromImage";
+[@bs.val] [@bs.module "pixi.js"] [@bs.scope "Sprite"]
+external fromImage1 : string => appSpriteT = "fromImage";
+
+[@bs.get] external getAnchor : appSpriteT => appObservablePointT = "anchor";
+
+[@bs.send] external set1 : (appObservablePointT, float) => unit = "set";
+
+[@bs.set] external setX : (appSpriteT, int) => unit = "x";
+
+[@bs.get] external getX : appSpriteT => int = "x";
+
+[@bs.get] external getScreen : appApplicationT => appRectangleT = "screen";
+
+[@bs.get] external getWidth : appRectangleT => int = "width";
+
+[@bs.set] external setY : (appSpriteT, int) => unit = "y";
+
+[@bs.get] external getY : appSpriteT => int = "y";
+
+[@bs.get] external getHeight : appRectangleT => int = "height";
+
+[@bs.set]
+external setInteractive : (appSpriteT, Js.boolean) => unit = "interactive";
+
+[@bs.get] external getInteractive : appSpriteT => Js.boolean = "interactive";
+
+[@bs.set]
+external setButtonMode : (appSpriteT, Js.boolean) => unit = "buttonMode";
+
+[@bs.get] external getButtonMode : appSpriteT => Js.boolean = "buttonMode";
+
+[@bs.val] external console : smallObject63T = "console";
+
+[@bs.get] external getScale : appSpriteT => appObservablePointT = "scale";
+
+[@bs.set]
+external setXappObservablePointTfloat : (appObservablePointT, float) => unit =
+  "x";
 
 [@bs.get]
-external getSpriteAnchor : appSpriteT => appObservablePointT = "anchor";
-
-[@bs.send]
-external spriteAnchorSet : (appObservablePointT, float) => unit = "set";
-
-[@bs.set] external setSpriteX : (appSpriteT, int) => unit = "x";
-
-[@bs.get] external getSpriteX : appSpriteT => int = "x";
-
-[@bs.get] external getAppScreen : appApplicationT => appRectangleT = "screen";
-
-[@bs.get] external getAppScreenWidth : appRectangleT => int = "width";
-
-[@bs.set] external setSpriteY : (appSpriteT, int) => unit = "y";
-
-[@bs.get] external getSpriteY : appSpriteT => int = "y";
-
-[@bs.get] external getAppScreenHeight : appRectangleT => int = "height";
+external getXappObservablePointT : appObservablePointT => float = "x";
 
 [@bs.set]
-external setSpriteInteractive : (appSpriteT, bool) => unit = "interactive";
-
-[@bs.get] external getSpriteInteractive : appSpriteT => bool = "interactive";
-
-[@bs.set]
-external setSpriteButtonMode : (appSpriteT, bool) => unit = "buttonMode";
-
-[@bs.get] external getSpriteButtonMode : appSpriteT => bool = "buttonMode";
-
-[@bs.val] external console : smallObject18T = "console";
+external setYappObservablePointTfloat : (appObservablePointT, float) => unit =
+  "y";
 
 [@bs.get]
-external getSpriteScale : appSpriteT => appObservablePointT = "scale";
-
-[@bs.set]
-external setSpriteScaleX : (appObservablePointT, float) => unit = "x";
-
-[@bs.get] external getSpriteScaleX : appObservablePointT => float = "x";
-
-[@bs.set]
-external setSpriteScaleY : (appObservablePointT, float) => unit = "y";
-
-[@bs.get] external getSpriteScaleY : appObservablePointT => float = "y";
-
-[@bs.new] external newEvent : string => appEventT = "Event";
+external getYappObservablePointT : appObservablePointT => float = "y";
 
 [@bs.send]
-external spriteOn : (appSpriteT, string, usageFunOnClickT) => appSpriteT =
-  "on";
+external on2 : (appSpriteT, string, usageFunOnClickT) => appSpriteT = "on";
 
-[@bs.get] external getAppStage : appApplicationT => appContainerT = "stage";
+[@bs.new] external newEvent1 : string => appEventT = "Event";
+
+[@bs.get] external getStage : appApplicationT => appContainerT = "stage";
 
 [@bs.send]
-external appStageAddChild : (appContainerT, appSpriteT) => appSpriteT =
-  "addChild";
+external addChild1 : (appContainerT, appSpriteT) => appSpriteT = "addChild";
 
-let app = newPIXIApplication(800, 600, {"backgroundColor": 0x1099bb});
+let app = newApplication3(800, 600, {"backgroundColor": 0x1099bb});
 
 /*
  console.log(app.constructor.name);
   */
-let _ = documentBodyAppendChild(getDocumentBody(document), getAppView(app));
+document |. getBody |. appendChild1(app |. getView);
 
 /* Scale mode for all textures, will retain pixelation */
-setPIXISettingsSCALE_MODE(getPIXISettings, getPIXISCALE_MODESNEAREST);
+setSCALE_MODE(getSettings, getNEAREST);
 
 let sprite =
-  pixiSpriteFromImage(
-    getPIXISprite,
-    "http://pixijs.io/examples/required/assets/basics/bunny.png"
-  );
+  fromImage1("http://pixijs.io/examples/required/assets/basics/bunny.png");
 
 /* Set the initial position */
-spriteAnchorSet(getSpriteAnchor(sprite), 0.5);
+sprite |. getAnchor |. set1(0.5);
 
-setSpriteX(sprite, getAppScreenWidth(getAppScreen(app)) / 2);
+setX(sprite, (app |. getScreen |. getWidth) / 2);
 
-setSpriteY(sprite, getAppScreenHeight(getAppScreen(app)) / 2);
+setY(sprite, (app |. getScreen |. getHeight) / 2);
 
 /* Opt-in to interactivity */
-setSpriteInteractive(sprite, true);
+setInteractive(sprite, Js.true_);
 
 /* Shows hand cursor */
-setSpriteButtonMode(sprite, true);
+setButtonMode(sprite, Js.true_);
 
 /* PS: Functions are not automatically lifted and must be in order for
  * generated script to use them correctly.  */
 let onClick = evt => {
   /* PS: Make sure your event handlers are called at least once by script  */
   Js.log(evt);
-  setSpriteScaleX(
-    getSpriteScale(sprite),
-    getSpriteScaleX(getSpriteScale(sprite)) *. 1.25
+  setXappObservablePointTfloat(
+    sprite |. getScale,
+    (sprite |. getScale |. getXappObservablePointT) *. 1.25
   );
-  setSpriteScaleY(
-    getSpriteScale(sprite),
-    getSpriteScaleY(getSpriteScale(sprite)) *. 1.25
+  setYappObservablePointTfloat(
+    sprite |. getScale,
+    (sprite |. getScale |. getYappObservablePointT) *. 1.25
   );
   0;
 };
 
-/* PS: Make sure your event handlers are called at least once by script, like
- * in the following line:  */
-let _ = onClick(newEvent("test"));
-
 /* Pointers normalize touch and mouse */
-let _ = spriteOn(sprite, "pointerdown", onClick);
+sprite |. on2("pointerdown", onClick);
+
+/* PS: Make sure your event handlers are called at least once by script, and
+ * done after function passed around, like in the following line:  */
+onClick(newEvent1("test"));
 
 /* Alternatively, use the mouse & touch events:
    sprite.on('click', onClick); // mouse-only
    sprite.on('tap', onClick); // touch-only */
-let _ = appStageAddChild(getAppStage(app), sprite);
+app |. getStage |. addChild1(sprite);
 
-let x = 3;
+let xRef = ref(3);
 
-let x = x * 2;
+xRef := xRef^ * 2;
