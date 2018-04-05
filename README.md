@@ -38,12 +38,28 @@ After transpile:
 
 # Testing examples
 
+## Node example
+
+Node support is basic so far, but an example can be found in
+src/example-node.txt.
+
+To run the example:
+
+```bash
+npm run webpack # to compile dist/node.js
+node dist/node.js
+npm start # to compile src/TestNode.re
+node src/TestNode.bs.js
+```
+
+## Browser examples
+
 ```bash
 node src/puppet.js examples/pixiBasics/example_001.js >| src/Test.re
 npm start
 ```
 
-## Caveats
+### Caveats
  - Example 4. Need to add a |> ignore at end of function.
  - Example 9. Need to add a |> ignore at end of function.
 
