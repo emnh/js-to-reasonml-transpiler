@@ -29,7 +29,7 @@ function onAssetsLoaded()
     app.stage.addChild(anim);
 
     // Animate the rotation
-    app.ticker.add(function() {
+    app.ticker.add(function(delta) {
         anim.rotation += 0.01;
     });
 }
