@@ -366,9 +366,6 @@ if you want a syntax implemented.
 - YES: <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg" alt="YES" width="20"/>
 - NO: <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
 
- | <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg" alt="YES" width="20"/>
- | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
-
 Feature | Supported
 --- | ---
 AssignmentExpression | <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg" alt="YES" width="20"/>
