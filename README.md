@@ -3,10 +3,10 @@
 Check it out [Live on GitHub
 Pages](https://emnh.github.io/js-to-reasonml-transpiler).
 
-Just started on this. Will be a helper script to port small examples from JS to
-ReasonML. Don't expect too much. Should be mainly for generating a baseline for
-externs, unless it grows to something bigger :p . Requires to actually run the
-code with eval because it will inspect the types for declaration at runtime.
+This is a helper script to port small examples from JS to ReasonML. It should
+be mainly for generating a baseline for externals, unless it grows to something
+bigger :p . Requires to actually run the code with eval because it will inspect
+the types for declaration at runtime.
 
 Why eval and not flow? I tried flow and it wasn't able to infer much, while
 evaling the code gets all types without much effort. Conditional code paths may
@@ -21,9 +21,9 @@ I am using :
 
 This section lists workarounds for transpilations not implemented yet.
 
- - All branches of if statements are evaluated. If you have if statements in
-   your code, think about the implications of that (infinite loops and other
-   problems etc). TODO: Only execute all branches once.
+ - All branches of if statements are evaluated to get the types. If you have if
+   statements in your code, think about the implications of that (infinite
+   loops and other problems etc). TODO: Only execute all branches once.
  - Initialize all (non-int) variables. Default value is set to 0 if not
    initialized and a TODO comment is added.
  - Reorder functions so that they are called after they are declared.
@@ -87,8 +87,11 @@ node ./dist/runtests.js
 # Alternatives
 
  - [Jeason](https://github.com/chenglou/jeason) is another approach using Flow.
-   Probably a more complete project, but not as convenient to copy paste and
-   run quick examples in browser.
+   Differences to my project are that flow cannot really infer many types at
+   all without annotations. The code Jeason generates is also full of dynamic
+   lookups, not using typed getters and setters as my project does. Also it is
+   not as convenient to copy paste and quickly transpile live examples in
+   browser.
  - [ReasonablyTyped](https://github.com/rrdelaney/ReasonablyTyped) I tried this
    a while ago to convert WebGL2 bindings (and three.js if I remember
    correctly) but I couldn't get it to work. Well, seems like it's a work in
