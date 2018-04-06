@@ -5,11 +5,11 @@ Pages](https://emnh.github.io/js-to-reasonml-transpiler).
 
 ## Table of contents
 
-[Introduction](#introduction)
-[Example transpilation](#example)
-[Manual labour](#manual-labour)
-[Testing examples](#testing-examples)
-[Running tests](#running-tests)
+- [Introduction](#introduction)
+- [Example transpilation](#example)
+- [Manual labour](#manual-labour)
+- [Testing examples](#testing-examples)
+- [Running tests](#running-tests)
 
 # Introduction
 
