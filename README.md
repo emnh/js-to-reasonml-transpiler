@@ -363,8 +363,8 @@ This list of ESprima syntax nodes is from
 annotated with whether transpilation is implemented or not yet. Create an issue
 if you want a syntax implemented.
 
-- YES: <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg" alt="YES" style="width: 40px;"/>
-- NO: <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" style="width: 40px;"/>
+- YES: <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg" alt="YES" width="40"/>
+- NO: <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="40"/>
 
 Feature | Supported
 --- | ---
