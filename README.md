@@ -363,12 +363,14 @@ This list of ESprima syntax nodes is from
 annotated with whether transpilation is implemented or not yet. Create an issue
 if you want a syntax implemented.
 
-- YES: ![alt text](https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg "YES")
-- NO: ![alt text](https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg "NO")
+- YES: <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg" alt="YES" style="width: 40px;"/>
+- NO: <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" style="width: 40px;"/>
 
 Feature | Supported
+--- | ---
 AssignmentExpression | YES
 AssignmentPattern | NO
+
 ArrayExpression
 ArrayPattern
 ArrowFunctionExpression
