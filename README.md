@@ -92,7 +92,7 @@ x *= 2;
 
 ## Output
 
-ReasonML syntax.
+ReasonML syntax, reformatted with refmt.
 
 ```ocaml
 type appApplicationT;
