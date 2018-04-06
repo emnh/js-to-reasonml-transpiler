@@ -523,7 +523,7 @@ var processNodes = {
     return node;
   },
   CallExpression: function(code, node) {
-    if (getCode(code, node).startsWith("consoleLog")) {
+    if (getCode(code, node).startsWith("console.log")) {
       node.reasonml = 'Js.log(' + joinArgs(node) + ')';
       return node;
     } else {
