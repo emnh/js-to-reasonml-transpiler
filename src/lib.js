@@ -400,6 +400,9 @@ function applyExpression(opts, code, node) {
   return node;
 };
 
+/* TODO: Sort processNodes and implement complete list from
+ * https://github.com/jquery/esprima/blob/master/src/syntax.ts
+ */
 var processNodes = {
   Program: function(code, node) {
     var rml = [];
