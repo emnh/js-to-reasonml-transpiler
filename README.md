@@ -10,7 +10,7 @@ Pages](https://emnh.github.io/js-to-reasonml-transpiler).
 - [Manual labour](#manual-labour)
 - [Testing examples](#testing-examples)
 - [Running tests](#running-tests)
-- [Alternatvies](#alternatives)
+- [Alternatives](#alternatives)
 
 # Introduction
 
