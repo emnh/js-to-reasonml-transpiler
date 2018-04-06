@@ -346,8 +346,6 @@ Go to http://localhost:8080/test .
 
 
 ```bash
-# First of all, replace the path to the compiler
-sed -i s@bs-platform/bin/bsb.exe@bs-platform/lib/bsb.exe@ node_modules/bsb-js/index.js
 # compile tests script
 npm run webpack
 # run tests script
