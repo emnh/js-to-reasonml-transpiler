@@ -1,7 +1,10 @@
 # JavaScript to ReasonML Transpiler
 
 Check it out [Live on GitHub
-Pages](https://emnh.github.io/js-to-reasonml-transpiler).
+Pages](https://emnh.github.io/js-to-reasonml-transpiler). Tested with:
+ - Chrome 65
+ - Firefox 59
+ - Edge 41
 
 ## Table of contents
 
