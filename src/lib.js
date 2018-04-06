@@ -6,6 +6,10 @@ var escodegen = require('escodegen');
 
 export var debug = [false];
 
+/* Experiments showed that flow is not nearly as useful as evaling code to get
+ * the types. */
+export var useFlow = [false];
+
 var consoleLog = console.log;
 if (!debug[0]) {
   consoleLog = function() {};
@@ -1268,12 +1272,17 @@ function declareExterns() {
 }
 
 export function compileAST(data) {
-  var syntax =
-    esprima.parse(
-      data,
-      { raw: true, tokens: true, range: true, comment: true });
+  var syntax;
+  if (!useFlow[0]) {
+    syntax =
+      esprima.parse(
+        data,
+        { raw: true, tokens: true, range: true, comment: true });
 
-  syntax = escodegen.attachComments(syntax, syntax.comments, syntax.tokens);
+    syntax = escodegen.attachComments(syntax, syntax.comments, syntax.tokens);
+  } else {
+    syntax = flow.parse('// @flow\n\n' + data);
+  }
   
   state = initState(data);
 
