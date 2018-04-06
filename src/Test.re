@@ -30,7 +30,7 @@ type smallObject42T = {
   "NEAREST": int
 };
 
-type smallObject63T = {. "memory": appMemoryInfoT};
+type smallObject65T = {. "memory": appMemoryInfoT};
 
 type usageFunOnClickT = appEventT => int;
 
@@ -98,7 +98,7 @@ external setButtonMode : (appSpriteT, Js.boolean) => unit = "buttonMode";
 
 [@bs.get] external getButtonMode : appSpriteT => Js.boolean = "buttonMode";
 
-[@bs.val] external console : smallObject63T = "console";
+[@bs.val] external console : smallObject65T = "console";
 
 [@bs.get] external getScale : appSpriteT => appObservablePointT = "scale";
 
@@ -179,6 +179,12 @@ onClick(newEvent1("test"));
    sprite.on('click', onClick); // mouse-only
    sprite.on('tap', onClick); // touch-only */
 app |. getStage |. addChild1(sprite);
+
+if (Js.to_bool(Js.true_)) {
+  Js.log("hello");
+} else {
+  Js.log("blah");
+};
 
 let xRef = ref(3);
 
