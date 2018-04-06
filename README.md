@@ -10,6 +10,7 @@ Pages](https://emnh.github.io/js-to-reasonml-transpiler).
 - [Manual labour](#manual-labour)
 - [Testing examples](#testing-examples)
 - [Running tests](#running-tests)
+- [Supported syntax](#supported-syntax)
 - [Alternatives](#alternatives)
 
 # Introduction
@@ -289,11 +290,14 @@ xRef := xRef^ * 2;
 
 # Manual labour
 
-This section lists workarounds for transpilations not implemented yet.
+This section lists workarounds for unimplemented features and transpilations.
 
  - All branches of if statements are evaluated to get the types. If you have if
    statements in your code, think about the implications of that (infinite
    loops and other problems etc). TODO: Only execute all branches once.
+ - Control flow keywords like continue and break are not supported yet. Early
+   return is not supported either: there should only be a single return
+   statement at end of function.
  - Initialize all (non-int) variables. Default value is set to 0 if not
    initialized and a TODO comment is added.
  - Reorder functions so that they are called after they are declared.
@@ -351,6 +355,85 @@ npm run webpack
 # run tests script
 node ./dist/runtests.js
 ```
+
+# Supported syntax
+
+This list of ESprima syntax nodes is from
+[here](https://github.com/jquery/esprima/blob/master/src/syntax.ts) and
+annotated with whether transpilation is implemented or not yet. Create an issue
+if you want a syntax implemented.
+
+- YES: ![alt text](https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg "YES")
+- NO: ![alt text](https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg "NO")
+
+Feature | Supported
+AssignmentExpression | YES
+AssignmentPattern | NO
+ArrayExpression
+ArrayPattern
+ArrowFunctionExpression
+AwaitExpression
+BlockStatement
+BinaryExpression
+BreakStatement
+CallExpression
+CatchClause
+ClassBody
+ClassDeclaration
+ClassExpression
+ConditionalExpression
+ContinueStatement
+DoWhileStatement
+DebuggerStatement
+EmptyStatement
+ExportAllDeclaration
+ExportDefaultDeclaration
+ExportNamedDeclaration
+ExportSpecifier
+ExpressionStatement
+ForStatement
+ForOfStatement
+ForInStatement
+FunctionDeclaration
+FunctionExpression
+Identifier
+IfStatement
+Import
+ImportDeclaration
+ImportDefaultSpecifier
+ImportNamespaceSpecifier
+ImportSpecifier
+Literal
+LabeledStatement
+LogicalExpression
+MemberExpression
+MetaProperty
+MethodDefinition
+NewExpression
+ObjectExpression
+ObjectPattern
+Program
+Property
+RestElement
+ReturnStatement
+SequenceExpression
+SpreadElement
+Super
+SwitchCase
+SwitchStatement
+TaggedTemplateExpression
+TemplateElement
+TemplateLiteral
+ThisExpression
+ThrowStatement
+TryStatement
+UnaryExpression
+UpdateExpression
+VariableDeclaration
+VariableDeclarator
+WhileStatement
+WithStatement
+YieldExpression
 
 # Alternatives
 
