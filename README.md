@@ -6,8 +6,12 @@ Pages](https://emnh.github.io/js-to-reasonml-transpiler).
 Just started on this. Will be a helper script to port small examples from JS to
 ReasonML. Don't expect too much. Should be mainly for generating a baseline for
 externs, unless it grows to something bigger :p . Requires to actually run the
-code because it will inspect the types for declaration at runtime. It only
-supports browser so far, not node.
+code with eval because it will inspect the types for declaration at runtime.
+
+Why eval and not flow? I tried flow and it wasn't able to infer much, while
+evaling the code gets all types without much effort. Conditional code paths may
+present complications though, so try to avoid them in example code. See "Manual
+labour" for more information.
 
 I am using :
  - Esprima (reading js)
