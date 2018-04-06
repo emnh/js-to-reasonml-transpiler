@@ -4,10 +4,10 @@ var esprima = require('esprima');
 
 var escodegen = require('escodegen');
 
-export var debug = false;
+export var debug = [false];
 
 var consoleLog = console.log;
-if (!debug) {
+if (!debug[0]) {
   consoleLog = function() {};
 }
 
@@ -792,7 +792,7 @@ var processNodes = {
   ForStatement: function(code, node) {
     node.reasonml = 
       node.init.reasonml +
-      'while (' + node.test.reasonml + ') {\n' +
+      'while (Js.to_bool(' + node.test.reasonml + ')) {\n' +
         /*
       node.init.reasonmlAlias +
       */
@@ -818,7 +818,19 @@ var processNodes = {
         third = 'string_of_int(' + third + ')';
       }
     }
-    node.reasonml = 'if (' + first + ') {' + second + '} else {' + third + '}';
+    node.reasonml = 'if (Js.to_bool(' + first + ')) {' + second + '} else {' + third + '}';
+    return node;
+  },
+  IfStatement: function(code, node) {
+    var first = node.test.reasonml;
+    var second = node.consequent.reasonml;
+    var third = node.alternate.reasonml;
+    if (node.consequent[globalTypeName] != node.alternate[globalTypeName]) {
+      if (node.consequent[globalTypeName] == 'string' && node.alternate[globalTypeName] == 'int') {
+        third = 'string_of_int(' + third + ')';
+      }
+    }
+    node.reasonml = 'if (Js.to_bool(' + first + ')) ' + second + ' else ' + third + statementTerminator;
     return node;
   },
   UnaryExpression: function(code, node) {
@@ -1120,6 +1132,14 @@ function postProcessTypes(code, parentNode, node) {
     newNode.body[0].argument.arguments[2].body = node;
     return newNode;
   };
+  if (node.type == 'IfStatement') {
+    /* WARNING: All branches of if statement are executed to get the types */
+    var expr = '{}';
+    var newNode = esprima.parse(expr).body[0];
+    newNode.isU = true;
+    newNode.body = [node.test, node.consequent, node.alternate];
+    return newNode;
+  }
   return node;
 };
 
@@ -1333,6 +1353,9 @@ export function compile(data, evalTimeout) {
   */
 
   consoleLog(code);
+  /*
+  console.log(code);
+  */
 
   eval(code);
 

@@ -43,6 +43,11 @@ onClick(new Event('test'));
 
 app.stage.addChild(sprite);
 
+if (true) {
+  console.log("hello");
+} else {
+  console.log("blah");
+}
 
 var x = 3;
 

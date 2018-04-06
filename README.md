@@ -17,6 +17,9 @@ I am using :
 
 This section lists workarounds for transpilations not implemented yet.
 
+ - All branches of if statements are evaluated. If you have if statements in
+   your code, think about the implications of that (infinite loops and other
+   problems etc). TODO: Only execute all branches once.
  - Initialize all (non-int) variables. Default value is set to 0 if not
    initialized and a TODO comment is added.
  - Reorder functions so that they are called after they are declared.

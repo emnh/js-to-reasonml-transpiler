@@ -6,8 +6,6 @@ var fs = require('fs');
 
 var path = require('path');
 
-var bsb = require('bsb-js');
-
 var cp = require('child_process');
 
 var evalTimeout = 0;
@@ -60,14 +58,18 @@ var srcDirName = dirName + '/src';
     } catch(error) {
       console.log("Test failed transpile: ", name);
       console.log(error.stack.toString());
+      var ast = Lib.compileAST(program);
+      console.log(ast);
       continue;
     }
     var tempFileName = srcDirName + '/Temp' + i + '.re';
     var jsOutFileName = srcDirName + '/Temp' + i + '.bs.js';
-    try {
-      fs.unlinkSync(tempFileName);
-    } catch (error) {
-    }
+    var cleanup = function() {
+      try {
+        fs.unlinkSync(tempFileName);
+      } catch (error) {
+      }
+    };
     fs.writeFileSync(tempFileName, compiled);
     var js;
     try {
@@ -85,7 +87,9 @@ var srcDirName = dirName + '/src';
       js = fs.readFileSync(jsOutFileName, 'utf-8');
       js = js.replace('console.log', 'log');
     } catch (error) {
+      cleanup();
       console.log("Test failed ReasonML compile: ", name);
+      console.log(compiled);
       console.log(error.stdout.toString('utf-8'));
       console.log(error.stack.toString());
       continue;
@@ -93,6 +97,7 @@ var srcDirName = dirName + '/src';
       console.log(error.stack.toString());
       */
     }
+    cleanup();
     var logs = [];
     root.fakeConsole = {
       log: function(obj) {

@@ -18,6 +18,8 @@ require('codemirror/mode/mllike/mllike');
 
 var Lib = require('./lib.js');
 
+Lib.debug[0] = true;
+
 $('document').ready(function() {
   /* Load CodeMirror CSS */
   /*
