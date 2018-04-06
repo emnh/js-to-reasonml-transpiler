@@ -366,76 +366,78 @@ if you want a syntax implemented.
 - YES: <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg" alt="YES" width="20"/>
 - NO: <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
 
+ | <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg" alt="YES" width="20"/>
+ | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+
 Feature | Supported
 --- | ---
 AssignmentExpression | <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg" alt="YES" width="20"/>
 AssignmentPattern | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
-
-ArrayExpression
-ArrayPattern
-ArrowFunctionExpression
-AwaitExpression
-BlockStatement
-BinaryExpression
-BreakStatement
-CallExpression
-CatchClause
-ClassBody
-ClassDeclaration
-ClassExpression
-ConditionalExpression
-ContinueStatement
-DoWhileStatement
-DebuggerStatement
-EmptyStatement
-ExportAllDeclaration
-ExportDefaultDeclaration
-ExportNamedDeclaration
-ExportSpecifier
-ExpressionStatement
-ForStatement
-ForOfStatement
-ForInStatement
-FunctionDeclaration
-FunctionExpression
-Identifier
-IfStatement
-Import
-ImportDeclaration
-ImportDefaultSpecifier
-ImportNamespaceSpecifier
-ImportSpecifier
-Literal
-LabeledStatement
-LogicalExpression
-MemberExpression
-MetaProperty
-MethodDefinition
-NewExpression
-ObjectExpression
-ObjectPattern
-Program
-Property
-RestElement
-ReturnStatement
-SequenceExpression
-SpreadElement
-Super
-SwitchCase
-SwitchStatement
-TaggedTemplateExpression
-TemplateElement
-TemplateLiteral
-ThisExpression
-ThrowStatement
-TryStatement
-UnaryExpression
-UpdateExpression
-VariableDeclaration
-VariableDeclarator
-WhileStatement
-WithStatement
-YieldExpression
+ArrayExpression | <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg" alt="YES" width="20"/>
+ArrayPattern | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+ArrowFunctionExpression | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+AwaitExpression | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+BlockStatement | <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg" alt="YES" width="20"/>
+BinaryExpression | <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg" alt="YES" width="20"/>
+BreakStatement | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+CallExpression | <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg" alt="YES" width="20"/>
+CatchClause | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+ClassBody | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+ClassDeclaration | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+ClassExpression | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+ConditionalExpression | <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg" alt="YES" width="20"/>
+ContinueStatement | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+DoWhileStatement | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+DebuggerStatement | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+EmptyStatement | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+ExportAllDeclaration | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+ExportDefaultDeclaration | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+ExportNamedDeclaration | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+ExportSpecifier | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+ExpressionStatement | <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg" alt="YES" width="20"/>
+ForStatement | <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg" alt="YES" width="20"/>
+ForOfStatement | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+ForInStatement | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+FunctionDeclaration | <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg" alt="YES" width="20"/>
+FunctionExpression | <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg" alt="YES" width="20"/>
+Identifier | <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg" alt="YES" width="20"/>
+IfStatement | <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg" alt="YES" width="20"/>
+Import | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+ImportDeclaration | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+ImportDefaultSpecifier | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+ImportNamespaceSpecifier | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+ImportSpecifier | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+Literal | <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg" alt="YES" width="20"/>
+LabeledStatement | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+LogicalExpression | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+MemberExpression | <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg" alt="YES" width="20"/>
+MetaProperty | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+MethodDefinition | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+NewExpression | <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg" alt="YES" width="20"/>
+ObjectExpression | <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg" alt="YES" width="20"/>
+ObjectPattern | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+Program | <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg" alt="YES" width="20"/>
+Property | <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg" alt="YES" width="20"/>
+RestElement | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+ReturnStatement | <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg" alt="YES" width="20"/>
+SequenceExpression | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+SpreadElement | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+Super | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+SwitchCase | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+SwitchStatement | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+TaggedTemplateExpression | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+TemplateElement | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+TemplateLiteral | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+ThisExpression | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+ThrowStatement | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+TryStatement | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+UnaryExpression | <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg" alt="YES" width="20"/>
+UpdateExpression | <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg" alt="YES" width="20"/>
+VariableDeclaration | <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg" alt="YES" width="20"/>
+VariableDeclarator | <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Checkmark_green.svg" alt="YES" width="20"/>
+WhileStatement | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+WithStatement | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
+YieldExpression | <img src="https://upload.wikimedia.org/wikipedia/commons/8/85/Red_checkbox-unchecked.svg" alt="NO" width="20"/>
 
 # Alternatives
 
