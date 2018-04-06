@@ -8,6 +8,7 @@ cat $file | while read lineContents; do
   char=0
   for char in `seq 0 $(echo $lineContents | wc -L)`; do
     echo node node_modules/.bin/flow type-at-pos $file $line $char
+    # see https://github.com/facebook/flow/issues/248
     node node_modules/.bin/flow type-at-pos flowtest-pixi.js $line $char
   done
 done
