@@ -348,4 +348,9 @@ span.CodeMirror-selectedtext { background: none; }
 /* Added by emh */
 .CodeMirror, .CodeMirror-scroll {
   height: auto;
-};
+}
+
+.CodeMirror-code .marked {
+  border: 1px solid red;
+  line-height: 1.5em;
+}

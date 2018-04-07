@@ -10,10 +10,13 @@ export var debug = [false];
  * the types. */
 export var useFlow = [false];
 
-var consoleLog = console.log;
-if (!debug[0]) {
-  consoleLog = function() {};
-}
+export var enableAllIfBranches = [false];
+
+var consoleLog = function() {
+  if (debug[0]) {
+    console.log(...arguments);
+  }
+};
 
 var modMap = {
   'PIXI': 'pixi.js',
@@ -40,6 +43,12 @@ var globalTypeName = '_ReasonMLType';
 var globalTypeDecl = '_ReasonMLTypeDecl';
 
 function initState(code) {
+  var toResolve;
+  var toReject;
+  var promise = new Promise(function (resolve, reject) {
+    toResolve = resolve;
+    toReject = reject;
+  });
   return {
     smallObjectCounter: 0,
     anonymousFunctionCounter: 0,
@@ -51,11 +60,15 @@ function initState(code) {
     },
     reasonExterns: {},
     astCode: code,
+    astTypeCount: 0,
     astNodes: [],
+    astNodeTypeUnresolved: {},
     astNodeParents: {},
     astNodeObjects: [],
     astMutables: {},
-    astNodesDebug: {}
+    astNodesDebug: {},
+    astTypesResolvedPromise: promise,
+    astResolve: toResolve
   };
 };
 
@@ -130,9 +143,6 @@ function getType(obj, rootNode, marker) {
           for (var i = 1; i < obj.length; i++) {
             var t2 = getType(obj[i], rootNode, marker);
             if (t !== t2) {
-              /*
-              consoleLog("mixed array", t, t2);
-              */
               return 'array(unknownT)';
             }
           }
@@ -208,6 +218,17 @@ function joinArgs(node) {
   }
   return reasonmlArgs.join(', ');
 };
+
+function showNodeError(code, node) {
+  var r = node.range;
+  var a = r[0];
+  var b = r[1];
+  var part = code.slice(a, b);
+  var errCode = code.slice(0, a - 1) + ' /* BEGIN ERROR */ ' + part + ' /* END ERROR */ ' + code.slice(b);
+  /*
+  console.error(errCode);
+  */
+}
 
 function getCode(code, node) {
   var r = node.range;
@@ -304,19 +325,12 @@ function getModName(code, node) {
 
 function addExtern(externName, value) {
   var decl = declareExtern(externName, value);
-  /*
-  consoleLog("decl", decl);
-  */
   if (!value.isNotExtern && externName in state.reasonExterns) {
     var oldDecl = declareExtern(externName, state.reasonExterns[externName]);
     if (decl !== oldDecl) {
       // Disambiguate by argument types
-      // consoleLog("disambiguate", externName);
       externName += value.argTypes.join('').replace(/[.()]/g, '');
     } else {
-      /*
-      consoleLog("no disambiguate", externName);
-      */
     }
   }
   state.reasonExterns[externName] = value;
@@ -468,7 +482,7 @@ var processNodes = {
       var translated = {};
       var op = node.operator;
       var leftRML = node.left.translate();
-      if (node.left.codeSet !== undefined) {
+      if (leftRML.codeSet !== undefined) {
         /* Property */
         if (op == '=') {
           translated.code = leftRML.codeSet + '(' + leftRML.codeLeft + ", " + node.right.translate().code + ')';
@@ -630,18 +644,12 @@ var processNodes = {
       var suffix = '';
       if (node.expression[globalTypeName] !== 'unit' && node.expression[globalTypeName] !== undefined) {
         /*
-        consoleLog(node.expression[globalTypeName]);
-        */
-        /*
         prefix = 'let _ = ';
         */
         /*
         suffix = '|> ignore';
         */
       };
-      /*
-      consoleLog(getCode(code, node), node.expression[globalTypeName]);
-      */
       translated.code = prefix + node.expression.translate().code + suffix;
       if (!translated.code.trim().endsWith(';')) {
         translated.code += statementTerminator;
@@ -780,7 +788,17 @@ var processNodes = {
     tests: []
   },
   LabeledStatement: defaultBody,
-  LogicalExpression: defaultBody,
+  LogicalExpression: {
+    translate: function(code, node) {
+      var translated = {};
+      var operator = node.operator;
+      var left = node.left.translate().code;
+      var right = node.right.translate().code;
+      translated.code = '(' + left + ' ' + operator + ' ' + right + ')';
+      return translated;
+    },
+    tests: []
+  },
   MemberExpression: defaultBody,
   MemberExpression: {
     translate: function(code, node) {
@@ -820,7 +838,9 @@ var processNodes = {
         if (useRight !== null) {
           retType = useRight;
         } else {
-          throw new Error('Unresolved MemberExpression');
+          var msg = 'Unresolved MemberExpression';
+          showNodeError(code, node, msg);
+          throw new Error(msg);
         };
       };
       qual = 'get';
@@ -1015,7 +1035,6 @@ var processNodes = {
         if (isRequire) {
           /* TODO: a bit hacky. only supports var lib = require("string"); */
           modMap[name] = node.declarations[i].init.arguments[0].value;
-          consoleLog(modMap);
         } else {
           rml.push(s);
         }
@@ -1086,7 +1105,25 @@ function postProcess(code, parentNode, node) {
   return node;
 };
 
+function checkTypeCount(index) {
+  var oldValue = !(index in state.astNodeTypeUnresolved);
+  delete state.astNodeTypeUnresolved[index];
+  var remaining = Object.keys(state.astNodeTypeUnresolved).length;
+  if (!oldValue) {
+    /*
+    consoleLog("Remaining types to resolve: ", remaining);
+    */
+    for (var i = 0; i < showTypesCallbacks.length; i++) {
+      showTypesCallbacks[i](state.astNodeTypeUnresolved);
+    }
+  }
+  if (remaining == 0) {
+    state.astResolve();
+  }
+};
+
 function U(index, arg) {
+  checkTypeCount(index);
   var node = state.astNodes[index];
   if (node.type == 'AssignmentExpression' && node.left.type == 'Identifier') {
     state.astMutables[node.left.name] = true;
@@ -1101,7 +1138,8 @@ function U(index, arg) {
 };
 
 function F(index, args, f) {
-  var retval = f();
+  checkTypeCount(index);
+  var retval = f(...args);
   var node = state.astNodes[index];
   var parentNode = state.astNodeParents[node[globalIndexName]];
   var parameters = parentNode.params;
@@ -1125,9 +1163,6 @@ function F(index, args, f) {
   if (parentNode.id != null) {
     /* Named function */
     var funTypeName = 'usageFun' + capitalizeFirstLetter(parentNode.id.name) + 'T';
-    /*
-    consoleLog(funTypeName, funType);
-    */
     if (!(funTypeName in state.reasonTypes)) {
       state.reasonTypes[funTypeName] = {};
     }
@@ -1151,9 +1186,6 @@ function F(index, args, f) {
     }
   }
   parentNode[globalTypeName] = funType;
-  /*
-  consoleLog(parentNode[globalTypeName]);
-  */
   return retval;
 };
 
@@ -1193,7 +1225,8 @@ function postProcessTypes(code, parentNode, node) {
     'BlockStatement': {},
     'ReturnStatement': {},
     'ForStatement': {},
-    'IfStatement': {}
+    'IfStatement': {},
+    'SpreadElement': {}
   };
   var checkIt = function(ignores, propName) {
     var f = function(node) {
@@ -1220,11 +1253,6 @@ function postProcessTypes(code, parentNode, node) {
     };
     var done = false;
     var h = function(node) {
-      /*
-      if (propName == 'body') {
-        consoleLog("done", done);
-      };
-      */
       if (done) {
         return false;
       };
@@ -1288,7 +1316,7 @@ function postProcessTypes(code, parentNode, node) {
   var isNewCallee = checkIt({ 'NewExpression': {} }, 'arguments') && node.type != 'NewExpression';
   var isAssign = checkNodeParentAssign(node);
   /*
-  consoleLog(
+  onsoleLog(
     node.type,
     getCode(code, node),
     !(node.type in directIgnores),
@@ -1318,6 +1346,8 @@ function postProcessTypes(code, parentNode, node) {
     var newNode = getExpression(expr);
     newNode.arguments[1] = node;
     newNode.isU = true;
+    state.astTypeCount++;
+    state.astNodeTypeUnresolved[node[globalIndexName]] = node;
     return newNode;
   }
   var checkNodeParentFunctionDeclBody = function(node) {
@@ -1332,19 +1362,22 @@ function postProcessTypes(code, parentNode, node) {
   var isFunExprBody = checkNodeParentFunctionExprBody(node);
   if (isFunBody || isFunExprBody) {
     var expr = '() => { return F(' + node[globalIndexName] + ', arguments, function() {}); }';
-    consoleLog(expr);
     var newNode = esprima.parse(expr).body[0].expression.body;
     newNode.isU = true;
-    consoleLog(newNode);
     newNode.body[0].argument.arguments[2].body = node;
+    state.astTypeCount++;
+    state.astNodeTypeUnresolved[node[globalIndexName]] = node;
     return newNode;
   };
-  if (node.type == 'IfStatement') {
+  if (node.type == 'IfStatement' && enableAllIfBranches[0]) {
     /* WARNING: All branches of if statement are executed to get the types */
     var expr = '{}';
     var newNode = esprima.parse(expr).body[0];
     newNode.isU = true;
-    newNode.body = [node.test, node.consequent, node.alternate];
+    newNode.body = [node.test, node.consequent];
+    if (node.alternate !== null) {
+      newNode.body.push(node.alternate);
+    }
     return newNode;
   }
   return node;
@@ -1484,6 +1517,13 @@ export function compileAST(data) {
     syntax = flow.parse('// @flow\n\n' + data);
   }
 
+  var debugU = true;
+  if (debugU) {
+    syntax = rewrite(data, syntax, postProcessTypesAdd);
+
+    syntax = rewrite(data, syntax, postProcessTypes);
+  }
+
   state = initState(data);
 
   var nodePaths = [];
@@ -1526,6 +1566,11 @@ export function compileAST(data) {
   return s;
 }
 
+var showTypesCallbacks = [];
+export function registerShowTypesCallback(f) {
+  showTypesCallbacks.push(f);
+}
+
 export function compile(data, evalTimeout) {
   var syntax =
     esprima.parse(
@@ -1534,13 +1579,6 @@ export function compile(data, evalTimeout) {
 
   syntax = escodegen.attachComments(syntax, syntax.comments, syntax.tokens);
 
-  /*
-  consoleLog(syntax);
-  */
-
-  /*
-  consoleLog(JSON.stringify(syntax, null, 2));
-   */
   state = initState(data);
 
   var syntax2 = rewrite(data, syntax, postProcessTypesAdd);
@@ -1560,46 +1598,37 @@ export function compile(data, evalTimeout) {
 
   var code = escodegen.generate(syntaxForTypes, option);
 
-  /*
-  consoleLog(esprima.parse('V(0, {a: 2})["a"];'));
-  */
-
-  consoleLog(code);
-  /*
-  console.log(code);
-  */
-
   eval(code);
 
-  var promise = new Promise((resolve, reject) => {
-    var afterEval = function() {
-      try {
-        var syntaxReasonML = rewrite(data, syntax2, postProcess);
-
-        var reasonmlCode = syntaxReasonML.translate().code;
-        
-        var decl = declareExterns().join('\n');
-        
-        var types = declareTypes(reasonmlCode, decl, '');
-
-        /* TODO: do recursive lookup of types instead of just 2 steps */
-        var types2 = declareTypes(reasonmlCode, decl, types.join('\n'));
-
-        var header = types2.join('\n') + '\n' + decl;
-
-        var body = reasonmlCode;
-
-        var program = header + '\n' + body;
-
-        resolve(program);
-      } catch(error) {
-        reject(error);
-      }
-    };
-    setTimeout(afterEval, evalTimeout);
+  var timeoutPromise = new Promise((resolve, reject) => {
+    setTimeout(function() {
+        reject(new Error('timeout for resolving all types'))
+      },
+      evalTimeout);
   });
 
-  return promise;
+  var afterEval = function() {
+    var syntaxReasonML = rewrite(data, syntax2, postProcess);
+
+    var reasonmlCode = syntaxReasonML.translate().code;
+
+    var decl = declareExterns().join('\n');
+
+    var types = declareTypes(reasonmlCode, decl, '');
+
+    /* TODO: do recursive lookup of types instead of just 2 steps */
+    var types2 = declareTypes(reasonmlCode, decl, types.join('\n'));
+
+    var header = types2.join('\n') + '\n' + decl;
+
+    var body = reasonmlCode;
+
+    var program = header + '\n' + body;
+
+    return program;
+  };
+
+  return Promise.race([timeoutPromise, state.astTypesResolvedPromise]).then(afterEval);
 };
 
 /*
