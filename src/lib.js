@@ -12,6 +12,14 @@ export var useFlow = [false];
 
 export var enableAllIfBranches = [false];
 
+var useBoolWrapper = false;
+var boolWrapper = '';
+var boolType = 'bool';
+if (useBoolWrapper) {
+  boolWrapper = 'Js.to_bool';
+  boolType = 'Js.boolean';
+}
+
 var consoleLog = function() {
   if (debug[0]) {
     console.log(...arguments);
@@ -108,7 +116,7 @@ function getType(obj, rootNode, marker) {
       }
       break;
     case 'boolean':
-      return 'Js.boolean';
+      return boolType;
       break;
     case 'string':
       return 'string';
@@ -313,7 +321,7 @@ function addArgTypes(node, argTypes) {
 function getModName(code, node) {
   var modName = null;
   var resolved = null;
-  var parts = getCode(code, node).split('.');
+  var parts = getCode(code, node).replace('\n', '').replace(' ', '').split('.');
   if (parts.length > 1) {
     modName = parts[0];
     if (modName in modMap) {
@@ -329,8 +337,15 @@ function addExtern(externName, value) {
     var oldDecl = declareExtern(externName, state.reasonExterns[externName]);
     if (decl !== oldDecl) {
       // Disambiguate by argument types
-      externName += value.argTypes.join('').replace(/[.()]/g, '');
+      externName += value.argTypes.join('').replace(/[.() =>]/g, '') + value.retType;
     } else {
+    }
+    var decl = declareExtern(externName, value);
+    if (externName in state.reasonExterns) {
+      var oldDecl = declareExtern(externName, state.reasonExterns[externName]);
+      if (decl !== oldDecl) {
+        throw new Error('failed to disambiguate: ' + externName);
+      }
     }
   }
   state.reasonExterns[externName] = value;
@@ -493,7 +508,7 @@ var processNodes = {
               op2 += '.';
           }
           var paddedOp = ' ' + op2 + ' ';
-          node.translated =
+          translated.code =
             leftRML.codeSet +
             '(' + leftRML.codeLeft + ", " +
             '(' + leftRML.code + paddedOp + node.right.translate().code + '))';
@@ -624,7 +639,7 @@ var processNodes = {
           third = 'string_of_int(' + third + ')';
         }
       }
-      translated.code = 'if (Js.to_bool(' + first + ')) {' + second + '} else {' + third + '}';
+      translated.code = 'if (' + boolWrapper + '(' + first + ')) {' + second + '} else {' + third + '}';
       return translated;
     },
     tests: []
@@ -651,8 +666,10 @@ var processNodes = {
         */
       };
       translated.code = prefix + node.expression.translate().code + suffix;
+      var shouldIgnore = node.expression.type !== 'AssignmentExpression';
+      var ignore = shouldIgnore ? ' /* |> ignore */ ' : '';
       if (!translated.code.trim().endsWith(';')) {
-        translated.code += statementTerminator;
+        translated.code += ignore + statementTerminator;
       }
       return translated;
     },
@@ -663,8 +680,8 @@ var processNodes = {
       var translated = {};
       translated.code =
         node.init.translate().code +
-        'while (Js.to_bool(' + node.test.translate().code + ')) {\n' +
-        node.body.translate().code + statementTerminator +
+        'while (' + boolWrapper + '(' + node.test.translate().code + ')) {\n' +
+        node.body.translate().code + ' |> ignore' + statementTerminator +
         node.update.translate().code + statementTerminator +
         '}' + statementTerminator;
       return translated;
@@ -676,10 +693,18 @@ var processNodes = {
   FunctionDeclaration: {
     translate: function(code, node) {
       var translated = {};
+      var retType = node[globalTypeName].replace(/.*=> /, '');
+      var ignoreReturn = false;
+      if (retType === 'unit') {
+        ignoreReturn = true;
+      }
       translated.code =
         'let ' + node.id.translate().code +
         ' = (' + joinParams(node) + ') => ' +
-        node.body.translate().code + statementTerminator;
+        '{\n' +
+        node.body.translate().code + statementTerminator +
+        (ignoreReturn ? '()' : '') +
+        '}\n' + statementTerminator;
       return translated;
     },
     tests: []
@@ -687,7 +712,14 @@ var processNodes = {
   FunctionExpression: {
     translate: function(code, node) {
       var translated = {};
-      translated.code = '(' + joinParams(node) + ') => ' + node.body.translate().code;
+      var retType = node[globalTypeName].replace(/.*=> /, '');
+      var ignoreReturn = false;
+      if (retType == 'unit') {
+        ignoreReturn = true;
+      }
+      translated.code =
+        '(' + joinParams(node) + ') => ' + node.body.translate().code +
+        (ignoreReturn ? ' |> ignore' : '');
       return translated;
     },
     tests: []
@@ -746,7 +778,14 @@ var processNodes = {
           third = 'string_of_int(' + third + ')';
         }
       }
-      translated.code = 'if (Js.to_bool(' + first + ')) ' + second + ' else ' + third + statementTerminator;
+      if (third !== null) {
+        translated.code = 
+          'if (' + boolWrapper + '(' + first + ')) ' + second + 
+          ' else ' + third + statementTerminator;
+      } else {
+        translated.code = 
+          'if (' + boolWrapper + '(' + first + ')) ' + second + statementTerminator;
+      }
       return translated;
     },
     tests: [
@@ -770,10 +809,10 @@ var processNodes = {
       var translated = {};
       if (node[globalTypeName] == 'string') {
         translated.code = '"' + node.value + '"';
-      } else if (node[globalTypeName] == 'Js.boolean') {
-        if (node.raw === 'true') {
+      } else if (node[globalTypeName] === boolType) {
+        if (useBoolWrapper && node.raw === 'true') {
           translated.code = 'Js.true_';
-        } else if (node.raw === 'false') {
+        } else if (useBoolWrapper && node.raw === 'false') {
           translated.code = 'Js.false_';
         } else {
           translated.code = node.raw;
@@ -1083,6 +1122,10 @@ for (var name in processNodes) {
 var getTranslate = function(code, node, translate) {
   return function() {
     var retval = translate(code, node);
+    if (!('code' in retval)) {
+      console.log('error node', node);
+      throw new Error('no code returned for node: ' + node.type);
+    }
     if ('leadingComments' in node) {
       var comment = []
       for (var i = 0; i < node.leadingComments.length; i++) {
@@ -1131,7 +1174,15 @@ function U(index, arg) {
   if (node.type == 'UpdateExpression' && node.argument.type == 'Identifier') {
     state.astMutables[node.argument.name] = true;
   }
-  node[globalTypeName] = getType(arg, node);
+  var newType = getType(arg, node);
+  /*
+  (node[globalTypeName].match(/float/g) || []).length;
+  */
+  if (globalTypeName in node && node[globalTypeName].replace(/float/g, 'int') === newType) {
+    // unify int and float to float
+  } else {
+    node[globalTypeName] = newType;
+  }
   state.astNodeObjects[index] = arg;
   state.astNodesDebug[index] = arg;
   return arg;
