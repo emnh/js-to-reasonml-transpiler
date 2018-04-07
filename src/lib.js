@@ -404,14 +404,9 @@ function applyExpression(opts, code, node) {
   return node;
 };
 
-/* TODO: Sort processNodes and implement complete list from
- * https://github.com/jquery/esprima/blob/master/src/syntax.ts
- */
 /*
  * TODO:
  * - astNodeParents is private. getParent() to access.
- * - join tests with program.
- * - make current function a translate property.
  * - make node.reasonml a lazy function
  * */
 var defaultBody = {
@@ -426,6 +421,26 @@ var defaultBody = {
   tests: []
 };
 
+function node(nodeObject) {
+  if (!('translate' in nodeObject)) {
+    throw(new Error('node is missing translate function'));
+  }
+  if (!('tests' in nodeObject)) {
+    nodeObject.tests = [];
+  }
+  nodeObject.validated = true;
+  return nodeObject;
+}
+
+var test = {
+  statement1: 'fakeConsole.log("shrimp");',
+  out1: 'shrimp',
+  statement2: 'fakeConsole.log("fish");',
+  out2: 'fish'
+};
+
+/* List of syntax nodes from
+ * https://github.com/jquery/esprima/blob/master/src/syntax.ts .*/
 var processNodes = {
   AssignmentExpression: {
     translate: function(code, node) {
@@ -700,7 +715,16 @@ var processNodes = {
       node.reasonml = 'if (Js.to_bool(' + first + ')) ' + second + ' else ' + third + statementTerminator;
       return node;
     },
-    tests: []
+    tests: [
+      {
+        program: 'if (true) { ' + test.statement1 + ' } else { ' + test.statement2 + '}',
+        out: [test.out1]
+      },
+      {
+        program: 'if (false) { ' + test.statement1 + ' } else { ' + test.statement2 + '}',
+        out: [test.out2]
+      }
+    ]
   },
   Import: defaultBody,
   ImportDeclaration: defaultBody,
@@ -860,7 +884,16 @@ var processNodes = {
       node.reasonml = rml.join('\n');
       return node;
     },
-    tests: []
+    tests: [
+      {
+        program: test.statement1,
+        out: [test.out1]
+      },
+      {
+        program: test.statement2,
+        out: [test.out2]
+      }
+    ]
   },
   Property: {
     translate: function(code, node) {
@@ -1004,6 +1037,16 @@ processNodes.Line = {
   },
   tests: []
 };
+
+export var tests = {};
+for (var name in processNodes) {
+  var processNode = node(processNodes[name]);
+  processNode.name = name;
+  processNodes[name] = processNode;
+  for (var i = 0; i < processNode.tests.length; i++) {
+    tests[name + i.toString()] = processNode.tests[i];
+  }
+}
 
 function postProcess(code, parentNode, node) {
   var retval = node;
