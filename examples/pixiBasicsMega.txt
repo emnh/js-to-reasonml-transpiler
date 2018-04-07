@@ -80,7 +80,7 @@ app.ticker.add(function(delta) {
 var app = new PIXI.Application();
 document.body.appendChild(app.view);
 
-function onAssetsLoaded()
+function onAssetsLoaded(loader, res)
 {
     // create an array of textures from an image path
     var frames = [];
@@ -133,8 +133,10 @@ var sprite = PIXI.Sprite.fromImage('http://pixijs.io/examples/required/assets/ba
 
 // Set the initial position
 sprite.anchor.set(0.5);
-sprite.x = app.screen.width / 2;
-sprite.y = app.screen.height / 2;
+sprite.x = app.screen.width / 2 + 0.01;
+sprite.y = app.screen.height / 2 + 0.01;
+sprite.scale.x = 1.01;
+sprite.scale.y = 1.01;
 
 // Opt-in to interactivity
 sprite.interactive = true;
