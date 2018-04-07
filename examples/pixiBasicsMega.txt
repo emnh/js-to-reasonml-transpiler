@@ -1,0 +1,453 @@
+var app = new PIXI.Application(800, 600, {backgroundColor : 0x1099bb});
+document.body.appendChild(app.view);
+
+// create a new Sprite from an image path
+var bunny = PIXI.Sprite.fromImage('http://pixijs.io/examples/required/assets/basics/bunny.png')
+
+// center the sprite's anchor point
+bunny.anchor.set(0.5);
+
+// move the sprite to the center of the screen
+bunny.x = app.screen.width / 2;
+bunny.y = app.screen.height / 2;
+
+app.stage.addChild(bunny);
+
+var rotation = function(delta) {
+    // just for fun, let's rotate mr rabbit a little
+    // delta is 1 if running at 100% performance
+    // creates frame-independent transformation
+    bunny.rotation += 0.1 * delta;
+};
+rotation(0.01);
+
+// Listen for animate update
+app.ticker.add(rotation);
+var app = new PIXI.Application(800, 600, {backgroundColor : 0x1099bb});
+document.body.appendChild(app.view);
+
+var container = new PIXI.Container();
+
+app.stage.addChild(container);
+
+var texture = PIXI.Texture.fromImage('http://pixijs.io/examples/required/assets/basics/bunny.png');
+
+// Create a 5x5 grid of bunnies
+for (var i = 0; i < 25; i++) {
+    var bunny = new PIXI.Sprite(texture);
+    bunny.anchor.set(0.5);
+    bunny.x = (i % 5) * 40;
+    bunny.y = Math.floor(i / 5) * 40;
+    container.addChild(bunny);
+}
+
+// Center on the screen
+container.x = (app.screen.width - container.width) / 2;
+container.y = (app.screen.height - container.height) / 2;
+var app = new PIXI.Application(800, 600, {backgroundColor : 0x1099bb});
+document.body.appendChild(app.view);
+
+var container = new PIXI.Container();
+
+app.stage.addChild(container);
+
+// Create a new texture
+var texture = PIXI.Texture.fromImage('http://pixijs.io/examples/required/assets/basics/bunny.png');
+
+// Create a 5x5 grid of bunnies
+for (var i = 0; i < 25; i++) {
+    var bunny = new PIXI.Sprite(texture);
+    bunny.anchor.set(0.5);
+    bunny.x = (i % 5) * 40;
+    bunny.y = Math.floor(i / 5) * 40;
+    container.addChild(bunny);
+}
+
+// Move container to the center
+container.x = app.screen.width / 2;
+container.y = app.screen.height / 2;
+
+// Center bunny sprite in local container coordinates
+container.pivot.x = container.width / 2;
+container.pivot.y = container.height / 2;
+
+// Listen for animate update
+app.ticker.add(function(delta) {
+    // rotate the container!
+    // use delta to create frame-independent transform
+    container.rotation -= 0.01 * delta;
+  });
+var app = new PIXI.Application();
+document.body.appendChild(app.view);
+
+function onAssetsLoaded()
+{
+    // create an array of textures from an image path
+    var frames = [];
+
+    for (var i = 0; i < 30; i++) {
+        var val = i < 10 ? '0' + i : '' + i;
+
+        // magically works since the spritesheet was loaded with the pixi loader
+        frames.push(PIXI.Texture.fromFrame('rollSequence00' + val + '.png'));
+    }
+
+    // create an AnimatedSprite (brings back memories from the days of Flash, right ?)
+    var anim = new PIXI.extras.AnimatedSprite(frames);
+
+    /*
+     * An AnimatedSprite inherits all the properties of a PIXI sprite
+     * so you can change its position, its anchor, mask it, etc
+     */
+    anim.x = app.screen.width / 2;
+    anim.y = app.screen.height / 2;
+    anim.anchor.set(0.5);
+    anim.animationSpeed = 0.5;
+    anim.play();
+
+    app.stage.addChild(anim);
+
+    // Animate the rotation
+    app.ticker.add(function(delta) {
+        anim.rotation += 0.01;
+    });
+}
+
+var fighterJson = 'http://pixijs.io/examples/required/assets/basics/fighter.json';
+/* Done near end of script instead */
+/*
+PIXI.loader
+    .add('fighter', 'http://pixijs.io/examples/required/assets/basics/fighter.json')
+    .load(onAssetsLoaded);
+    */
+var app = new PIXI.Application(800, 600, { backgroundColor: 0x1099bb });
+/*
+console.log(app.constructor.name);
+*/
+document.body.appendChild(app.view);
+
+// Scale mode for all textures, will retain pixelation
+PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
+
+var sprite = PIXI.Sprite.fromImage('http://pixijs.io/examples/required/assets/basics/bunny.png');
+
+// Set the initial position
+sprite.anchor.set(0.5);
+sprite.x = app.screen.width / 2;
+sprite.y = app.screen.height / 2;
+
+// Opt-in to interactivity
+sprite.interactive = true;
+
+// Shows hand cursor
+sprite.buttonMode = true;
+
+/* PS: Functions are not automatically lifted and must be in order for
+ * generated script to use them correctly. */
+function onClick(evt) {
+  /* PS: Make sure your event handlers are called at least once by script */
+  console.log(evt);
+  sprite.scale.x *= 1.25;
+  sprite.scale.y *= 1.25;
+  return 0;
+}
+
+// Pointers normalize touch and mouse
+sprite.on('pointerdown', onClick);
+
+/* PS: Make sure your event handlers are called at least once by script, and
+ * done after function passed around, like in the following line: */
+onClick(new Event('test'));
+
+// Alternatively, use the mouse & touch events:
+// sprite.on('click', onClick); // mouse-only
+// sprite.on('tap', onClick); // touch-only
+
+app.stage.addChild(sprite);
+
+
+var x = 3;
+
+x *= 2;
+var app = new PIXI.Application();
+document.body.appendChild(app.view);
+
+// create a texture from an image path
+var texture = PIXI.Texture.fromImage('http://pixijs.io/examples/required/assets/p2.jpeg');
+
+/* create a tiling sprite ...
+ * requires a texture, a width and a height
+ * in WebGL the image size should preferably be a power of two
+ */
+var tilingSprite = new PIXI.extras.TilingSprite(
+    texture,
+    app.screen.width,
+    app.screen.height
+);
+app.stage.addChild(tilingSprite);
+
+var count = 0.005;
+
+app.ticker.add(function() {
+
+    count += 0.005;
+
+    tilingSprite.tileScale.x = 2 + Math.sin(count);
+    tilingSprite.tileScale.y = 2 + Math.cos(count);
+
+    tilingSprite.tilePosition.x += 1;
+    tilingSprite.tilePosition.y += 1;
+});
+var app = new PIXI.Application(800, 600, {backgroundColor: 0x1099bb});
+document.body.appendChild(app.view);
+
+var basicText = new PIXI.Text('Basic text in pixi');
+basicText.x = 30;
+basicText.y = 90;
+
+app.stage.addChild(basicText);
+
+var style = new PIXI.TextStyle({
+    fontFamily: 'Arial',
+    fontSize: 36,
+    fontStyle: 'italic',
+    fontWeight: 'bold',
+    fill: ['#ffffff', '#00ff99'], // gradient
+    stroke: '#4a1850',
+    strokeThickness: 5,
+    dropShadow: true,
+    dropShadowColor: '#000000',
+    dropShadowBlur: 4,
+    dropShadowAngle: Math.PI / 6,
+    dropShadowDistance: 6,
+    wordWrap: true,
+    wordWrapWidth: 440
+});
+
+var richText = new PIXI.Text('Rich text with a lot of options and across multiple lines', style);
+richText.x = 30;
+richText.y = 180;
+
+app.stage.addChild(richText);
+var app = new PIXI.Application(800, 600, { antialias: true });
+document.body.appendChild(app.view);
+
+var graphics = new PIXI.Graphics();
+
+// set a fill and line style
+graphics.beginFill(0xFF3300);
+graphics.lineStyle(4, 0xffd900, 1);
+
+// draw a shape
+graphics.moveTo(50,50);
+graphics.lineTo(250, 50);
+graphics.lineTo(100, 100);
+graphics.lineTo(50, 50);
+graphics.endFill();
+
+// set a fill and a line style again and draw a rectangle
+graphics.lineStyle(2, 0x0000FF, 1);
+graphics.beginFill(0xFF700B, 1.01);
+graphics.drawRect(50, 250, 120, 120);
+
+// draw a rounded rectangle
+graphics.lineStyle(2, 0xFF00FF, 1);
+graphics.beginFill(0xFF00BB, 0.25);
+graphics.drawRoundedRect(150, 450, 300, 100, 15);
+graphics.endFill();
+
+// draw a circle, set the lineStyle to zero so the circle doesn't have an outline
+graphics.lineStyle(0);
+graphics.beginFill(0xFFFF0B, 0.5);
+graphics.drawCircle(470, 90,60);
+graphics.endFill();
+
+app.stage.addChild(graphics);
+var app = new PIXI.Application(800, 600, { transparent: true });
+document.body.appendChild(app.view);
+
+// Create play button that can be used to trigger the video
+var button = new PIXI.Graphics()
+    .beginFill(0x0, 0.5)
+    .drawRoundedRect(0, 0, 100, 100, 10)
+    .endFill()
+    .beginFill(0xffffff)
+    .moveTo(36, 30)
+    .lineTo(36, 70)
+    .lineTo(70, 50);
+
+// Position the button
+button.x = (app.screen.width - button.width) / 2;
+button.y = (app.screen.height - button.height) / 2;
+
+// Enable interactivity on the button
+button.interactive = true;
+button.buttonMode = true;
+
+// Add to the stage
+app.stage.addChild(button);
+
+function onPlayVideo() {
+
+    // Don't need the button anymore
+    button.destroy();
+
+    // create a video texture from a path
+    var texture = PIXI.Texture.fromVideo('http://pixijs.io/examples/required/assets/testVideo.mp4');
+
+    // create a new Sprite using the video texture (yes it's that easy)
+    var videoSprite = new PIXI.Sprite(texture);
+
+    // Stetch the fullscreen
+    videoSprite.width = app.screen.width;
+    videoSprite.height = app.screen.height;
+
+    app.stage.addChild(videoSprite);
+}
+
+// Listen for a click/tap event to start playing the video
+// this is useful for some mobile platforms. For example:
+// ios9 and under cannot render videos in PIXI without a
+// polyfill - https://github.com/bfred-it/iphone-inline-video
+// ios10 and above require a click/tap event to render videos
+// that contain audio in PIXI. Videos with no audio track do
+// not have this requirement
+button.on('pointertap', onPlayVideo);
+
+onPlayVideo();
+var app = new PIXI.Application(800, 600, {backgroundColor : 0x1099bb});
+document.body.appendChild(app.view);
+
+var container = new PIXI.Container();
+app.stage.addChild(container);
+
+var texture = PIXI.Texture.fromImage('http://pixijs.io/examples/required/assets/basics/bunny.png');
+
+for (var i = 0; i < 25; i++) {
+    var bunny = new PIXI.Sprite(texture);
+    bunny.x = (i % 5) * 30;
+    bunny.y = Math.floor(i / 5) * 30;
+    bunny.rotation = Math.random() * (Math.PI * 2)
+    container.addChild(bunny);
+}
+
+var brt = new PIXI.BaseRenderTexture(300, 300, PIXI.SCALE_MODES.LINEAR, 1);
+var rt = new PIXI.RenderTexture(brt);
+
+var sprite = new PIXI.Sprite(rt);
+
+sprite.x = 450;
+sprite.y = 60;
+app.stage.addChild(sprite);
+
+/*
+ * All the bunnies are added to the container with the addChild method
+ * when you do this, all the bunnies become children of the container, and when a container moves,
+ * so do all its children.
+ * This gives you a lot of flexibility and makes it easier to position elements on the screen
+ */
+container.x = 100;
+container.y = 60;
+
+app.ticker.add(function() {
+    app.renderer.render(container, rt);
+});
+var app = new PIXI.Application();
+document.body.appendChild(app.view);
+
+var count = 0.1;
+
+// build a rope!
+var ropeLength = 45;
+
+var points = [];
+
+for (var i = 0; i < 25; i++) {
+    points.push(new PIXI.Point(i * ropeLength, 0));
+}
+
+var strip = new PIXI.mesh.Rope(PIXI.Texture.fromImage('http://pixijs.io/examples/required/assets/snake.png'), points);
+
+strip.x = -40;
+strip.y = 300;
+
+app.stage.addChild(strip);
+
+var g = new PIXI.Graphics();
+g.x = strip.x;
+g.y = strip.y;
+app.stage.addChild(g);
+
+function renderPoints () {
+
+    g.clear();
+
+    g.lineStyle(2,0xffc2c2);
+    g.moveTo(points[0].x,points[0].y);
+
+    for (var i = 1; i < points.length; i++) {
+        g.lineTo(points[i].x,points[i].y);
+    }
+
+    for (var i = 1; i < points.length; i++) {
+        g.beginFill(0xff0022);
+        g.drawCircle(points[i].x,points[i].y,10);
+        g.endFill();
+    }
+}
+
+// start animating
+app.ticker.add(function() {
+
+    count += 0.1;
+
+    // make the snake
+    for (var i = 0; i < points.length; i++) {
+        points[i].y = Math.sin((i * 0.6) + count) * 30;
+        points[i].x = i * ropeLength + Math.cos((i * 0.3) + count) * 20;
+    }
+    renderPoints();
+});
+
+setTimeout(function() {
+  var app = new PIXI.Application();
+  document.body.appendChild(app.view);
+
+  // Create background image
+  var background = PIXI.Sprite.fromImage("http://pixijs.io/examples/required/assets/bkg-grass.jpg");
+  background.width = app.screen.width;
+  background.height = app.screen.height;
+  app.stage.addChild(background);
+
+  // Stop application wait for load to finish
+  app.stop();
+
+  var filter = new PIXI.Filter(null, null);
+
+  // Handle the load completed
+  function onLoaded(loader, res) {
+    // Create the new filter, arguments: (vertexShader, framentSource)
+    filter = new PIXI.Filter(null, res.shader.data);
+
+    // Add the filter
+    /* Workaround for refmt bug https://github.com/facebook/reason/issues/1895 */
+    var filter2 = filter;
+    background.filters = [filter2];
+
+    // Resume application update
+    app.start();
+  }
+
+  PIXI.loader
+      .add('fighter', fighterJson)
+      .add('shader', 'http://pixijs.io/examples/required/assets/basics/shader.frag')
+      .load(function(loader, res) {
+        onAssetsLoaded(loader, res);
+        onLoaded(loader, res);
+      });
+
+  // Animate the filter
+  app.ticker.add(function(delta) {
+      filter.uniforms.customUniform += 0.04 * delta;
+  });
+}, 0);
