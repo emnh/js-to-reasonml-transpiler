@@ -21,7 +21,7 @@ function timeout(ms) {
   /*
   var result = await page.evaluate((source) => Promise.resolve(compile(source)), source);
   */
-  var result = await page.evaluate((source) => compile(source, 2000), source);
+  var result = await page.evaluate((source) => compile(source, 10000), source);
   console.log(result);
   /*
   await page.screenshot({path: 'example.png', fullPage: true});
