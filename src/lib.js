@@ -407,152 +407,386 @@ function applyExpression(opts, code, node) {
 /* TODO: Sort processNodes and implement complete list from
  * https://github.com/jquery/esprima/blob/master/src/syntax.ts
  */
+/*
+ * TODO:
+ * - astNodeParents is private. getParent() to access.
+ * - join tests with program.
+ * - make current function a translate property.
+ * - make node.reasonml a lazy function
+ * */
+var defaultBody = {
+  translate: function(code, node) {
+    node.reasonml = '';
+    /*
+    throw(new Error('unimplemented node type: ' + node.type + ', parent: ' + parentNode.type));
+    */
+    throw(new Error('unimplemented node type: ' + node.type));
+    return node;
+  },
+  tests: []
+};
+
 var processNodes = {
-  Program: function(code, node) {
-    var rml = [];
-    for (var i = 0; i < node.body.length; i++) {
-      var child = node.body[i];
-      rml.push(child.reasonml);
-    }
-    node.reasonml = rml.join('\n');
-    return node;
-  },
-  VariableDeclaration: function(code, node) {
-    var rml = [];
-    /*
-    var rmla = [];
-    */
-    var parentNode = state.astNodeParents[node[globalIndexName]];
-    /*
-    var mutable = parentNode.type == 'ForStatement' && parentNode.init[globalIndexName] == node[globalIndexName];
-    */
-    for (var i = 0; i < node.declarations.length; i++) {
-      var name = node.declarations[i].id.reasonml;
-      var mutable =
-        'reasonmlMutable' in node.declarations[i].id &&
-        node.declarations[i].id.reasonmlMutable === true;
-      var value = null;
-      if (node.declarations[i].init != null) {
-        value = node.declarations[i].init.reasonml;
+  AssignmentExpression: {
+    translate: function(code, node) {
+      var op = node.operator;
+      if (node.left.reasonmlSet !== undefined) {
+        /* Property */
+        if (op == '=') {
+          node.reasonml = node.left.reasonmlSet + '(' + node.left.reasonmlLeft + ", " + node.right.reasonml + ')';
+        } else {
+          /* *= /= += -= */
+          var op2 = op[0];
+          if (node.right[globalTypeName] == 'float') {
+              op2 += '.';
+          }
+          var paddedOp = ' ' + op2 + ' ';
+          node.reasonml =
+            node.left.reasonmlSet +
+            '(' + node.left.reasonmlLeft + ", " +
+            '(' + node.left.reasonml + paddedOp + node.right.reasonml + '))';
+        }
       } else {
-        value = '/* TODO: Uninitialized var */ 0';
-        mutable = true;
+        /* Plain assignment */
+        if (op == '=') {
+          var mutable = 'reasonmlMutable' in node.left && node.left.reasonmlMutable;
+          if (mutable) {
+            node.reasonml = node.left.reasonml + ' := ' + node.right.reasonml;
+          } else {
+            node.reasonml = 'let ' + node.left.reasonml + ' = ' + node.right.reasonml;
+          }
+        } else {
+          /* *= /= += -= */
+          var op2 = op[0];
+          if (node.right[globalTypeName] == 'float') {
+              op2 += '.';
+          }
+          var paddedOp = ' ' + op2 + ' ';
+          node.reasonml =
+            node.left.reasonml + ' := ' +
+            node.left.reasonml + '^' + paddedOp + '(' + node.right.reasonml + ')';
+        }
+      }
+      return node;
+    },
+    tests: []
+  },
+  AssignmentPattern: defaultBody,
+  ArrayExpression: {
+    translate: function(code, node) {
+      var args = [];
+      for (var i = 0; i < node.elements.length; i++) {
+        args.push(node.elements[i].reasonml);
+      }
+      node.reasonml = '[| ' + args.join(', ') + ' |]';
+      return node;
+    },
+    tests: []
+  },
+  ArrayPattern: defaultBody,
+  ArrowFunctionExpression: defaultBody,
+  AwaitExpression: defaultBody,
+  BlockStatement: {
+    translate: function(code, node) {
+      var rml = [];
+      for (var i = 0; i < node.body.length; i++) {
+        var child = node.body[i];
+        rml.push(child.reasonml);
+      }
+      node.reasonml = '{\n' + rml.join('\n') + '\n' + '}\n';
+      return node;
+    },
+    tests: []
+  },
+  BinaryExpression: {
+    translate: function(code, node) {
+      var operator = node.operator;
+      if (operator == '%') {
+        operator = 'mod';
+      }
+      var left = node.left.reasonml;
+      var right = node.right.reasonml;
+      if (node[globalTypeName] === 'float' ||
+          node.left[globalTypeName] === 'float' ||
+          node.right[globalTypeName] === 'float') {
+        operator = operator + '.';
+        if (node.left[globalTypeName] == 'int') {
+          left = 'float_of_int(' + left + ')';
+        }
+        if (node.right[globalTypeName] == 'int') {
+          right = 'float_of_int(' + right + ')';
+        }
+      } else if (node[globalTypeName] == 'string' && operator == '+') {
+        operator = '++';
+        if (node.left[globalTypeName] == 'int') {
+          left = 'string_of_int(' + left + ')';
+        }
+        if (node.right[globalTypeName] == 'int') {
+          right = 'string_of_int(' + right + ')';
+        }
+        if (node.left[globalTypeName] == 'float') {
+          left = 'string_of_float(' + left + ')';
+        }
+        if (node.right[globalTypeName] == 'float') {
+          right = 'string_of_float(' + right + ')';
+        }
+      }
+      node.reasonml = '(' + left + ' ' + operator + ' ' + right + ')';
+      return node;
+    },
+    tests: []
+  },
+  BreakStatement: defaultBody,
+  CallExpression: {
+    translate: function(code, node) {
+      if (getCode(code, node).startsWith("console.log")) {
+        node.reasonml = 'Js.log(' + joinArgs(node) + ')';
+        return node;
+      } else {
+        return applyExpression({
+            type: 'call',
+            attributes: ['[@bs.send]']
+          },
+          code,
+          node);
+      }
+    },
+    tests: []
+  },
+  CatchClause: defaultBody,
+  ClassBody: defaultBody,
+  ClassDeclaration: defaultBody,
+  ClassExpression: defaultBody,
+  ConditionalExpression: {
+    translate: function(code, node) {
+      var first = node.test.reasonml;
+      var second = node.consequent.reasonml;
+      var third = node.alternate.reasonml;
+      if (node.consequent[globalTypeName] != node.alternate[globalTypeName]) {
+        if (node.consequent[globalTypeName] == 'string' && node.alternate[globalTypeName] == 'int') {
+          third = 'string_of_int(' + third + ')';
+        }
+      }
+      node.reasonml = 'if (Js.to_bool(' + first + ')) {' + second + '} else {' + third + '}';
+      return node;
+    },
+    tests: []
+  },
+  ContinueStatement: defaultBody,
+  DoWhileStatement: defaultBody,
+  DebuggerStatement: defaultBody,
+  EmptyStatement: defaultBody,
+  ExportAllDeclaration: defaultBody,
+  ExportDefaultDeclaration: defaultBody,
+  ExportNamedDeclaration: defaultBody,
+  ExportSpecifier: defaultBody,
+  ExpressionStatement: {
+    translate: function(code, node) {
+      var prefix = '';
+      var suffix = '';
+      if (node.expression[globalTypeName] !== 'unit' && node.expression[globalTypeName] !== undefined) {
+        /*
+        consoleLog(node.expression[globalTypeName]);
+        */
+        /*
+        prefix = 'let _ = ';
+        */
+        /*
+        suffix = '|> ignore';
+        */
       };
-
       /*
-      var s2 = 'let ' + name + ' = ' + name + 'Ref^';
-      if (!s2.trim().endsWith(';')) {
-        s2 += statementTerminator;
-      }
-      rmla.push(s2);
+      consoleLog(getCode(code, node), node.expression[globalTypeName]);
       */
-
-      if (mutable) {
-        /* name = name + 'Ref'; */
-        value = 'ref(' + value + ')';
+      node.reasonml = prefix + node.expression.reasonml + suffix;
+      if (!node.reasonml.trim().endsWith(';')) {
+        node.reasonml += statementTerminator;
       }
-      var s = 'let ' + name + ' = ' + value;
-      if (!s.trim().endsWith(';')) {
-        s += statementTerminator;
-      }
-      var isRequire = value.startsWith('require(');
-      if (isRequire) {
-        /* TODO: a bit hacky. only supports var lib = require("string"); */
-        modMap[name] = node.declarations[i].init.arguments[0].value;
-        consoleLog(modMap);
-      } else {
-        rml.push(s);
-      }
-    }
-    node.reasonml = rml.join('\n');
-    /*
-    node.reasonmlAlias = rmla.join('\n');
-    */
-    return node;
+      return node;
+    },
+    tests: []
   },
-  Literal: function(code, node) {
-    if (node[globalTypeName] == 'string') {
-      node.reasonml = '"' + node.value + '"';
-    } else if (node[globalTypeName] == 'Js.boolean') {
-      if (node.raw === 'true') {
-        node.reasonml = 'Js.true_';
-      } else if (node.raw === 'false') {
-        node.reasonml = 'Js.false_';
+  ForStatement: {
+    translate: function(code, node) {
+      node.reasonml =
+        node.init.reasonml +
+        'while (Js.to_bool(' + node.test.reasonml + ')) {\n' +
+          /*
+        node.init.reasonmlAlias +
+        */
+        node.body.reasonml + statementTerminator +
+        node.update.reasonml + statementTerminator +
+        '}' + statementTerminator;
+      return node;
+    },
+    tests: []
+  },
+  ForOfStatement: defaultBody,
+  ForInStatement: defaultBody,
+  FunctionDeclaration: {
+    translate: function(code, node) {
+      node.reasonml =
+        'let ' + node.id.reasonml +
+        ' = (' + joinParams(node) + ') => ' +
+        node.body.reasonml + statementTerminator;
+      return node;
+    },
+    tests: []
+  },
+  FunctionExpression: {
+    translate: function(code, node) {
+      node.reasonml = '(' + joinParams(node) + ') => ' + node.body.reasonml;
+      return node;
+    },
+    tests: []
+  },
+  Identifier: {
+    translate: function(code, node) {
+      if (node.name in globalsMap) {
+        var externName = node.name.toLowerCase();
+        var attributes = ['[@bs.val]'];
+        var argTypes = ['unit'];
+        var retType = node[globalTypeName];
+        var callName = node.name;
+        state.reasonExterns[externName] = {
+          noargs: true,
+          attributes: attributes,
+          argTypes: argTypes,
+          retType: retType,
+          callName: callName
+        };
+        node.reasonml = externName;
+      } else {
+        var parentNode = state.astNodeParents[node[globalIndexName]];
+        var parentNode2 = state.astNodeParents[parentNode[globalIndexName]];
+        var mutable =
+          parentNode2.type == 'ForStatement' &&
+          parentNode2.test[globalIndexName] == parentNode[globalIndexName];
+        var name = node.name;
+        mutable = mutable || name in state.astMutables;
+        node.reasonmlMutable = mutable;
+        var deref = '^';
+        if ((parentNode.type == 'VariableDeclarator' &&
+             parentNode.id[globalIndexName] == node[globalIndexName]) ||
+            (parentNode.type == 'AssignmentExpression' &&
+             parentNode.left[globalIndexName] == node[globalIndexName]) ||
+            parentNode.type == 'UpdateExpression') {
+          deref = '';
+        }
+        /* TODO: optimize with dict */
+        if (reserved.includes(name)) {
+          name = name + '_';
+        }
+        if (mutable) {
+          node.reasonml = name + 'Ref' + deref;
+        } else {
+          node.reasonml = name;
+        }
+      };
+      return node;
+    },
+    tests: []
+  },
+  IfStatement: {
+    translate: function(code, node) {
+      var first = node.test.reasonml;
+      var second = node.consequent.reasonml;
+      var third = node.alternate.reasonml;
+      if (node.consequent[globalTypeName] != node.alternate[globalTypeName]) {
+        if (node.consequent[globalTypeName] == 'string' && node.alternate[globalTypeName] == 'int') {
+          third = 'string_of_int(' + third + ')';
+        }
+      }
+      node.reasonml = 'if (Js.to_bool(' + first + ')) ' + second + ' else ' + third + statementTerminator;
+      return node;
+    },
+    tests: []
+  },
+  Import: defaultBody,
+  ImportDeclaration: defaultBody,
+  ImportDefaultSpecifier: defaultBody,
+  ImportNamespaceSpecifier: defaultBody,
+  ImportSpecifier: defaultBody,
+  Literal: {
+    translate: function(code, node) {
+      if (node[globalTypeName] == 'string') {
+        node.reasonml = '"' + node.value + '"';
+      } else if (node[globalTypeName] == 'Js.boolean') {
+        if (node.raw === 'true') {
+          node.reasonml = 'Js.true_';
+        } else if (node.raw === 'false') {
+          node.reasonml = 'Js.false_';
+        } else {
+          node.reasonml = node.raw;
+        }
+      } else if (node.raw === 'null') {
+        node.reasonml = 'Js.Nullable.null';
       } else {
         node.reasonml = node.raw;
       }
-    } else if (node.raw === 'null') {
-      node.reasonml = 'Js.Nullable.null';
-    } else {
-      node.reasonml = node.raw;
-    }
-    return node;
-  },
-  ObjectExpression: function(code, node) {
-    var rml = [];
-    for (var i = 0; i < node.properties.length; i++) {
-      var prop = node.properties[i];
-      var name = prop.key.name;
-      var value = prop.value;
-      rml.push('"' + name + '": ' + value.reasonml + '\n');
-    };
-    node.reasonml = '{' + rml.join(',') + '}';
-    return node;
-  },
-  ExpressionStatement: function(code, node) {
-    var prefix = '';
-    var suffix = '';
-    if (node.expression[globalTypeName] !== 'unit' && node.expression[globalTypeName] !== undefined) {
-      /*
-      consoleLog(node.expression[globalTypeName]);
-      */
-      /*
-      prefix = 'let _ = ';
-      */
-      /*
-      suffix = '|> ignore';
-      */
-    };
-    /*
-    consoleLog(getCode(code, node), node.expression[globalTypeName]);
-    */
-    node.reasonml = prefix + node.expression.reasonml + suffix;
-    if (!node.reasonml.trim().endsWith(';')) {
-      node.reasonml += statementTerminator;
-    }
-    return node;
-  },
-  CallExpression: function(code, node) {
-    if (getCode(code, node).startsWith("console.log")) {
-      node.reasonml = 'Js.log(' + joinArgs(node) + ')';
       return node;
-    } else {
-      return applyExpression({
-          type: 'call',
-          attributes: ['[@bs.send]']
-        },
-        code,
-        node);
-    }
+    },
+    tests: []
   },
-  MemberExpression: function(code, node) {
-    var parentNode = state.astNodeParents[node[globalIndexName]];
-    var useRight = null;
-    var qual = '';
-    if (parentNode.type == 'AssignmentExpression' &&
-        parentNode.left[globalIndexName] == node[globalIndexName]) {
-      qual = 'set';
+  LabeledStatement: defaultBody,
+  LogicalExpression: defaultBody,
+  MemberExpression: defaultBody,
+  MemberExpression: {
+    translate: function(code, node) {
+      var parentNode = state.astNodeParents[node[globalIndexName]];
+      var useRight = null;
+      var qual = '';
+      if (parentNode.type == 'AssignmentExpression' &&
+          parentNode.left[globalIndexName] == node[globalIndexName]) {
+        qual = 'set';
+        var externName = qual + getExternName(code, node);
+        var attributes = ['[@bs.set]'];
+        var argTypes = [node.object[globalTypeName], parentNode.right[globalTypeName]];
+        /*
+        var retType = parentNode[globalTypeName];
+        */
+        var retType = 'unit';
+        var callName = node.property.name;
+        if (node.computed) {
+          attributes = ['[@bs.set_index]'];
+          callName = '';
+        }
+        var value = {
+          attributes: attributes,
+          argTypes: argTypes,
+          retType: retType,
+          callName: callName
+        };
+        externName = addExtern(externName, value);
+        node.reasonmlSet = externName;
+        node.reasonmlLeft = node.object.reasonml;
+        useRight = parentNode.right[globalTypeName];
+      }
+      var retType = node[globalTypeName];
+      if (retType === undefined) {
+        if (useRight !== null) {
+          retType = useRight;
+        } else {
+          node.reasonml = '/* Unresolved MemberExpression */';
+          return node;
+        };
+      };
+      qual = 'get';
+      var [parts, modName, modResolved] = getModName(code, node);
       var externName = qual + getExternName(code, node);
-      var attributes = ['[@bs.set]'];
-      var argTypes = [node.object[globalTypeName], parentNode.right[globalTypeName]];
-      /*
-      var retType = parentNode[globalTypeName];
-      */
-      var retType = 'unit';
+      var attributes = ['[@bs.get]'];
       var callName = node.property.name;
+      var argTypes = [node.object[globalTypeName]];
       if (node.computed) {
-        attributes = ['[@bs.set_index]'];
+        attributes = ['[@bs.get_index]'];
         callName = '';
+        argTypes.push(node.property[globalTypeName]);
+      } else {
+        if (modName !== null && modName in modMap) {
+          attributes = ['[@bs.val]'];
+        } else {
+          modName = null;
+        }
       }
       var value = {
         attributes: attributes,
@@ -560,317 +794,221 @@ var processNodes = {
         retType: retType,
         callName: callName
       };
+      if (modName !== null) {
+        value.noargs = true;
+        attributes.push('[@bs.module "' + modResolved + '"]');
+        if (parts.length > 2) {
+          for (var i = 1; i < parts.length - 1; i++) {
+            attributes.push('[@bs.scope "' + parts[i] + '"]');
+          }
+        }
+      }
       externName = addExtern(externName, value);
-      node.reasonmlSet = externName;
-      node.reasonmlLeft = node.object.reasonml;
-      useRight = parentNode.right[globalTypeName];
-    }
-    var retType = node[globalTypeName];
-    if (retType === undefined) {
-      if (useRight !== null) {
-        retType = useRight;
+      if (modName !== null) {
+        node.reasonml = externName;
       } else {
-        node.reasonml = '/* Unresolved MemberExpression */';
-        return node;
-      };
-    };
-    qual = 'get';
-    var [parts, modName, modResolved] = getModName(code, node);
-    var externName = qual + getExternName(code, node);
-    var attributes = ['[@bs.get]'];
-    var callName = node.property.name;
-    var argTypes = [node.object[globalTypeName]];
-    if (node.computed) {
-      attributes = ['[@bs.get_index]'];
-      callName = '';
-      argTypes.push(node.property[globalTypeName]);
-    } else {
-      if (modName !== null && modName in modMap) {
-        attributes = ['[@bs.val]'];
-      } else {
-        modName = null;
-      }
-    }
-    var value = {
-      attributes: attributes,
-      argTypes: argTypes,
-      retType: retType,
-      callName: callName
-    };
-    if (modName !== null) {
-      value.noargs = true;
-      attributes.push('[@bs.module "' + modResolved + '"]');
-      if (parts.length > 2) {
-        for (var i = 1; i < parts.length - 1; i++) {
-          attributes.push('[@bs.scope "' + parts[i] + '"]');
-        }
-      }
-    }
-    externName = addExtern(externName, value);
-    if (modName !== null) {
-      node.reasonml = externName;
-    } else {
-      /*
-      node.reasonml = externName + '(' + node.object.reasonml + ')';
-      */
-      if (!node.computed) {
-        node.reasonml = '(' + node.object.reasonml + ' |. ' + externName + ')';
-      } else {
-        node.reasonml =
-          '(' + node.object.reasonml + ' |. ' + externName + 
-          '(' + node.property.reasonml + ')' + ')';
-      }
-    }
-    return node;
-  },
-  Identifier: function(code, node) {
-    if (node.name in globalsMap) {
-      var externName = node.name.toLowerCase();
-      var attributes = ['[@bs.val]'];
-      var argTypes = ['unit'];
-      var retType = node[globalTypeName];
-      var callName = node.name;
-      state.reasonExterns[externName] = {
-        noargs: true,
-        attributes: attributes,
-        argTypes: argTypes,
-        retType: retType,
-        callName: callName
-      };
-      node.reasonml = externName;
-    } else {
-      var parentNode = state.astNodeParents[node[globalIndexName]];
-      var parentNode2 = state.astNodeParents[parentNode[globalIndexName]];
-      var mutable =
-        parentNode2.type == 'ForStatement' && 
-        parentNode2.test[globalIndexName] == parentNode[globalIndexName];
-      var name = node.name;
-      mutable = mutable || name in state.astMutables;
-      node.reasonmlMutable = mutable;
-      var deref = '^';
-      if ((parentNode.type == 'VariableDeclarator' &&
-           parentNode.id[globalIndexName] == node[globalIndexName]) ||
-          (parentNode.type == 'AssignmentExpression' && 
-           parentNode.left[globalIndexName] == node[globalIndexName]) ||
-          parentNode.type == 'UpdateExpression') {
-        deref = '';
-      }
-      /* TODO: optimize with dict */
-      if (reserved.includes(name)) {
-        name = name + '_';
-      }
-      if (mutable) {
-        node.reasonml = name + 'Ref' + deref;
-      } else {
-        node.reasonml = name;
-      }
-    };
-    return node;
-  },
-  AssignmentExpression: function(code, node) {
-    var op = node.operator;
-    if (node.left.reasonmlSet !== undefined) {
-      /* Property */
-      if (op == '=') {
-        node.reasonml = node.left.reasonmlSet + '(' + node.left.reasonmlLeft + ", " + node.right.reasonml + ')';
-      } else {
-        /* *= /= += -= */
-        var op2 = op[0];
-        if (node.right[globalTypeName] == 'float') {
-            op2 += '.';
-        }
-        var paddedOp = ' ' + op2 + ' ';
-        node.reasonml =
-          node.left.reasonmlSet +
-          '(' + node.left.reasonmlLeft + ", " + 
-          '(' + node.left.reasonml + paddedOp + node.right.reasonml + '))';
-      }
-    } else {
-      /* Plain assignment */
-      if (op == '=') {
-        var mutable = 'reasonmlMutable' in node.left && node.left.reasonmlMutable;
-        if (mutable) {
-          node.reasonml = node.left.reasonml + ' := ' + node.right.reasonml;
-        } else {
-          node.reasonml = 'let ' + node.left.reasonml + ' = ' + node.right.reasonml;
-        }
-      } else {
-        /* *= /= += -= */
-        var op2 = op[0];
-        if (node.right[globalTypeName] == 'float') {
-            op2 += '.';
-        }
-        var paddedOp = ' ' + op2 + ' ';
-        node.reasonml =
-          node.left.reasonml + ' := ' +
-          node.left.reasonml + '^' + paddedOp + '(' + node.right.reasonml + ')';
-      }
-    }
-    return node;
-  },
-  BinaryExpression: function(code, node) {
-    var operator = node.operator;
-    if (operator == '%') {
-      operator = 'mod';
-    }
-    var left = node.left.reasonml;
-    var right = node.right.reasonml;
-    if (node[globalTypeName] === 'float' ||
-        node.left[globalTypeName] === 'float' ||
-        node.right[globalTypeName] === 'float') {
-      operator = operator + '.';
-      if (node.left[globalTypeName] == 'int') {
-        left = 'float_of_int(' + left + ')';
-      }
-      if (node.right[globalTypeName] == 'int') {
-        right = 'float_of_int(' + right + ')';
-      }
-    } else if (node[globalTypeName] == 'string' && operator == '+') {
-      operator = '++';
-      if (node.left[globalTypeName] == 'int') {
-        left = 'string_of_int(' + left + ')';
-      }
-      if (node.right[globalTypeName] == 'int') {
-        right = 'string_of_int(' + right + ')';
-      }
-      if (node.left[globalTypeName] == 'float') {
-        left = 'string_of_float(' + left + ')';
-      }
-      if (node.right[globalTypeName] == 'float') {
-        right = 'string_of_float(' + right + ')';
-      }
-    }
-    node.reasonml = '(' + left + ' ' + operator + ' ' + right + ')';
-    return node;
-  },
-  FunctionDeclaration: function(code, node) {
-    node.reasonml =
-      'let ' + node.id.reasonml + 
-      ' = (' + joinParams(node) + ') => ' +
-      node.body.reasonml + statementTerminator;
-    return node;
-  },
-  FunctionExpression: function(code, node) {
-    node.reasonml = '(' + joinParams(node) + ') => ' + node.body.reasonml;
-    return node;
-  },
-  BlockStatement: function(code, node) {
-    var rml = [];
-    for (var i = 0; i < node.body.length; i++) {
-      var child = node.body[i];
-      rml.push(child.reasonml);
-    }
-    node.reasonml = '{\n' + rml.join('\n') + '\n' + '}\n';
-    return node;
-  },
-  ReturnStatement: function(code, node) {
-    node.reasonml = node.argument.reasonml;
-    return node;
-  },
-  Property: function(code, node) {
-    node.reasonml = "/* Shouldn't show. Processed by ObjectExpression */";
-    return node;
-  },
-  VariableDeclarator: function(code, node) {
-    node.reasonml = "/* Shouldn't show. Processed by VariableDeclaration */";
-    return node;
-  },
-  Line: function(code, node) {
-    node.reasonml = "/* Shouldn't show. Comments processed elsewhere.*/";
-    return node;
-  },
-  Block: function(code, node) {
-    node.reasonml = "/* Shouldn't show. Comments processed elsewhere.*/";
-    return node;
-  },
-  UpdateExpression: function(code, node) {
-    if (node.prefix == true) {
-      throw(new Error('prefix operator not implemented'));
-    }
-    if (node.operator == '++') {
-      node.reasonml = '' + node.argument.reasonml + ' := ' + node.argument.reasonml + '^ + 1';
-    } else if (node.operator == '--') {
-      node.reasonml = '' + node.argument.reasonml + ' := ' + node.argument.reasonml + '^ - 1';
-    } else {
-      throw(new Error('suffix operator not implemented: ' + node.operator));
-    }
-    return node;
-  },
-  ForStatement: function(code, node) {
-    node.reasonml = 
-      node.init.reasonml +
-      'while (Js.to_bool(' + node.test.reasonml + ')) {\n' +
         /*
-      node.init.reasonmlAlias +
+        node.reasonml = externName + '(' + node.object.reasonml + ')';
+        */
+        if (!node.computed) {
+          node.reasonml = '(' + node.object.reasonml + ' |. ' + externName + ')';
+        } else {
+          node.reasonml =
+            '(' + node.object.reasonml + ' |. ' + externName +
+            '(' + node.property.reasonml + ')' + ')';
+        }
+      }
+      return node;
+    },
+    tests: [],
+  },
+  MetaProperty: defaultBody,
+  MethodDefinition: defaultBody,
+  NewExpression: {
+    translate: function(code, node) {
+      return applyExpression({
+          type: 'new',
+          attributes: ['[@bs.new]']
+        },
+        code,
+        node);
+    },
+    tests: []             
+  },
+  ObjectExpression: {
+    translate: function(code, node) {
+      var rml = [];
+      for (var i = 0; i < node.properties.length; i++) {
+        var prop = node.properties[i];
+        var name = prop.key.name;
+        var value = prop.value;
+        rml.push('"' + name + '": ' + value.reasonml + '\n');
+      };
+      node.reasonml = '{' + rml.join(',') + '}';
+      return node;
+    },
+    tests: []
+  },
+  ObjectPattern: defaultBody,
+  Program: {
+    translate: function(code, node) {
+      var rml = [];
+      for (var i = 0; i < node.body.length; i++) {
+        var child = node.body[i];
+        rml.push(child.reasonml);
+      }
+      node.reasonml = rml.join('\n');
+      return node;
+    },
+    tests: []
+  },
+  Property: {
+    translate: function(code, node) {
+      node.reasonml = "/* Shouldn't show. Processed by ObjectExpression */";
+      return node;
+    },
+    tests: []
+  },
+  RestElement: defaultBody,
+  ReturnStatement: {
+    translate: function(code, node) {
+      node.reasonml = node.argument.reasonml;
+      return node;
+    },
+    tests: []
+  },
+  SequenceExpression: defaultBody,
+  SpreadElement: defaultBody,
+  Super: defaultBody,
+  SwitchCase: defaultBody,
+  SwitchStatement: defaultBody,
+  TaggedTemplateExpression: defaultBody,
+  TemplateElement: defaultBody,
+  TemplateLiteral: defaultBody,
+  ThisExpression: defaultBody,
+  ThrowStatement: defaultBody,
+  TryStatement: defaultBody,
+  UnaryExpression: {
+    translate: function(code, node) {
+      if (node.prefix != true) {
+        throw(new Error('suffix unary operator not implemented'));
+      }
+      if (node.operator == '+') {
+        node.reasonml = '(+ ' + node.argument.reasonml + ')';
+      } else if (node.operator == '-') {
+        node.reasonml = '(- ' + node.argument.reasonml + ')';
+      } else {
+        throw(new Error('prefix unary operator not implemented: ' + node.operator));
+      }
+      return node;
+    },
+    tests: [],
+  },
+  UpdateExpression: {
+    translate: function(code, node) {
+      if (node.prefix == true) {
+        throw(new Error('prefix operator not implemented'));
+      }
+      if (node.operator == '++') {
+        node.reasonml = '' + node.argument.reasonml + ' := ' + node.argument.reasonml + '^ + 1';
+      } else if (node.operator == '--') {
+        node.reasonml = '' + node.argument.reasonml + ' := ' + node.argument.reasonml + '^ - 1';
+      } else {
+        throw(new Error('suffix operator not implemented: ' + node.operator));
+      }
+      return node;
+    },
+    tests: []
+  },
+  VariableDeclaration: {
+    translate: function(code, node) {
+      var rml = [];
+      /*
+      var rmla = [];
       */
-      node.body.reasonml + statementTerminator +
-      node.update.reasonml + statementTerminator +
-      '}' + statementTerminator;
-    return node;
-  },
-  ArrayExpression: function(code, node) {
-    var args = [];
-    for (var i = 0; i < node.elements.length; i++) {
-      args.push(node.elements[i].reasonml);
-    }
-    node.reasonml = '[| ' + args.join(', ') + ' |]';
-    return node;
-  },
-  ConditionalExpression: function(code, node) {
-    var first = node.test.reasonml;
-    var second = node.consequent.reasonml;
-    var third = node.alternate.reasonml;
-    if (node.consequent[globalTypeName] != node.alternate[globalTypeName]) {
-      if (node.consequent[globalTypeName] == 'string' && node.alternate[globalTypeName] == 'int') {
-        third = 'string_of_int(' + third + ')';
+      var parentNode = state.astNodeParents[node[globalIndexName]];
+      /*
+      var mutable = parentNode.type == 'ForStatement' && parentNode.init[globalIndexName] == node[globalIndexName];
+      */
+      for (var i = 0; i < node.declarations.length; i++) {
+        var name = node.declarations[i].id.reasonml;
+        var mutable =
+          'reasonmlMutable' in node.declarations[i].id &&
+          node.declarations[i].id.reasonmlMutable === true;
+        var value = null;
+        if (node.declarations[i].init != null) {
+          value = node.declarations[i].init.reasonml;
+        } else {
+          value = '/* TODO: Uninitialized var */ 0';
+          mutable = true;
+        };
+
+        /*
+        var s2 = 'let ' + name + ' = ' + name + 'Ref^';
+        if (!s2.trim().endsWith(';')) {
+          s2 += statementTerminator;
+        }
+        rmla.push(s2);
+        */
+
+        if (mutable) {
+          /* name = name + 'Ref'; */
+          value = 'ref(' + value + ')';
+        }
+        var s = 'let ' + name + ' = ' + value;
+        if (!s.trim().endsWith(';')) {
+          s += statementTerminator;
+        }
+        var isRequire = value.startsWith('require(');
+        if (isRequire) {
+          /* TODO: a bit hacky. only supports var lib = require("string"); */
+          modMap[name] = node.declarations[i].init.arguments[0].value;
+          consoleLog(modMap);
+        } else {
+          rml.push(s);
+        }
       }
-    }
-    node.reasonml = 'if (Js.to_bool(' + first + ')) {' + second + '} else {' + third + '}';
+      node.reasonml = rml.join('\n');
+      /*
+      node.reasonmlAlias = rmla.join('\n');
+      */
+      return node;
+    },
+    tests: []
+  },
+  VariableDeclarator: {
+    translate: function(code, node) {
+      node.reasonml = "/* Shouldn't show. Processed by VariableDeclaration */";
+      return node;
+    },
+    tests: []
+  },
+  WhileStatement: defaultBody,
+  WithStatement: defaultBody,
+  YieldExpression: defaultBody
+};
+
+/* Comment nodes */
+processNodes.Block = {
+  translate: function(code, node) {
+    node.reasonml = "/* Shouldn't show. Comments processed elsewhere.*/";
     return node;
   },
-  IfStatement: function(code, node) {
-    var first = node.test.reasonml;
-    var second = node.consequent.reasonml;
-    var third = node.alternate.reasonml;
-    if (node.consequent[globalTypeName] != node.alternate[globalTypeName]) {
-      if (node.consequent[globalTypeName] == 'string' && node.alternate[globalTypeName] == 'int') {
-        third = 'string_of_int(' + third + ')';
-      }
-    }
-    node.reasonml = 'if (Js.to_bool(' + first + ')) ' + second + ' else ' + third + statementTerminator;
+  tests: []
+};
+
+processNodes.Line = {
+  translate: function(code, node) {
+    node.reasonml = "/* Shouldn't show. Comments processed elsewhere.*/";
     return node;
   },
-  UnaryExpression: function(code, node) {
-    if (node.prefix != true) {
-      throw(new Error('suffix unary operator not implemented'));
-    }
-    if (node.operator == '+') {
-      node.reasonml = '(+ ' + node.argument.reasonml + ')';
-    } else if (node.operator == '-') {
-      node.reasonml = '(- ' + node.argument.reasonml + ')';
-    } else {
-      throw(new Error('prefix unary operator not implemented: ' + node.operator));
-    }
-    return node;
-  },
-  BogusTemplate: function(code, node) {
-    node.reasonml = '';
-    return node;
-  },
-  NewExpression: function(code, node) {
-    return applyExpression({
-        type: 'new',
-        attributes: ['[@bs.new]']
-      },
-      code,
-      node);
-  }
+  tests: []
 };
 
 function postProcess(code, parentNode, node) {
   var retval = node;
   if (node.type in processNodes) {
-    var process = processNodes[node.type];
+    var process = processNodes[node.type].translate;
     retval = process(code, node);
   } else {
     throw(new Error('unimplemented node type: ' + node.type + ', parent: ' + parentNode.type));
@@ -1283,7 +1421,7 @@ export function compileAST(data) {
   } else {
     syntax = flow.parse('// @flow\n\n' + data);
   }
-  
+
   state = initState(data);
 
   var nodePaths = [];
@@ -1375,11 +1513,11 @@ export function compile(data, evalTimeout) {
     var afterEval = function() {
       try {
         var syntaxReasonML = rewrite(data, syntax2, postProcess);
-        
+
         var decl = declareExterns().join('\n');
 
         var types = declareTypes(syntaxReasonML.reasonml, decl, '');
-        
+
         /* TODO: do recursive lookup of types instead of just 2 steps */
         var types2 = declareTypes(syntaxReasonML.reasonml, decl, types.join('\n'));
 
