@@ -54341,6 +54341,8 @@ $('document').ready(function() {
     var transpile = async function() {
       var result;
       editor3.getDoc().setValue("Waiting for eval to load resources etc: " + evalTimeout + "ms...");
+      window.customData.code = editor.getDoc().getValue();
+      window.customData.lib = editor2.getDoc().getValue();
       try {
         result = await compile(editor.getDoc().getValue());
       } catch(error) {

@@ -1,5 +1,45 @@
 <html>
   <head>
+    <script>
+       window.customData = {
+         tag: 'tag',
+         code: 'code',
+         lib: 'lib'
+       };
+
+       var refScript = document.getElementsByTagName("script")[0];
+       var rcScript  = document.createElement("script");
+
+       rcScript.async       = true;
+       rcScript.crossOrigin = "anonymous";
+       rcScript.src         = "https://app.therootcause.io/rootcause-full.js";
+
+       rcScript.addEventListener("load", onRCLoaded);
+       refScript.parentNode.insertBefore(rcScript, refScript);
+
+       function onRCLoaded() {
+         var logger = window.RC && new RC.Logger({
+            applicationId : "91d9633fe6a8850351ba52a843ab7ecd3dda38ec",
+            recordSessionVideo : false,
+            captureScreenshot : false,
+            recordUserActions : true,
+            logConsoleOutput : true,
+            logAjaxRequests : false,
+            treatFailedAjaxAsError : false,
+            logResourceLoadFailures : false,
+            showNotificationOnError : true,
+            showFeedbackButton : false,
+            showErrorDialog : true,
+            maxNbrOfReportedErrors : 1,
+            version : "", // TODO,
+            frameworkVersion : "", // TODO
+            captureArguments : {
+              "window": "compile",
+            },
+            data: window.customData
+          });
+        }
+    </script>
     <script src="index.js"></script>
   </head>
   <body></body>
