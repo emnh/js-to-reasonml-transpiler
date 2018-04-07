@@ -14,19 +14,19 @@ var testStatement1 = 'fakeConsole.log("shrimp");';
 var testStatement2 = 'fakeConsole.log("fish");';
 
 var tests = {
-  'TestStatement1': {
+  Statement1: {
     program: testStatement1,
     out: ['shrimp']
   },
-  'TestStatement2': {
+  Statement2: {
     program: testStatement2,
     out: ['fish']
   },
-  'IfStatement0': {
+  IfStatement0: {
     program: 'if (true) { ' + testStatement1 + ' } else { ' + testStatement2 + '}',
     out: ['shrimp']
   },
-  'IfStatement1': {
+  IfStatement1: {
     program: 'if (false) { ' + testStatement1 + ' } else { ' + testStatement2 + '}',
     out: ['fish']
   }
