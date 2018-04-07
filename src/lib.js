@@ -196,7 +196,7 @@ function getExpression(s) {
 function joinParams(node) {
   var reasonmlArgs = [];
   for (var i = 0; i < node.params.length; i++) {
-    reasonmlArgs.push(node.params[i].reasonml);
+    reasonmlArgs.push(node.params[i].translate().code);
   }
   return reasonmlArgs.join(', ');
 };
@@ -204,7 +204,7 @@ function joinParams(node) {
 function joinArgs(node) {
   var reasonmlArgs = [];
   for (var i = 0; i < node.arguments.length; i++) {
-    reasonmlArgs.push(node.arguments[i].reasonml);
+    reasonmlArgs.push(node.arguments[i].translate().code);
   }
   return reasonmlArgs.join(', ');
 };
@@ -350,7 +350,7 @@ function applyExpression(opts, code, node) {
     if (node.callee.type == 'MemberExpression') {
       objArgType = node.callee.object[globalTypeName];
       argTypes.push(objArgType);
-      objArg = node.callee.object.reasonml;
+      objArg = node.callee.object.translate().code;
       /*
       if (reargs != '') {
         objArg = objArg + ', ';
@@ -393,30 +393,37 @@ function applyExpression(opts, code, node) {
     }
   }
   externName = addExtern(externName, value);
+  var translated = {};
   if (objArg !== '') {
     if (reargs !== '') {
       reargs = '(' + reargs + ')'
     }
-    node.reasonml = '(' + objArg + ' |. ' + externName + reargs + ')';
+    translated.code = '(' + objArg + ' |. ' + externName + reargs + ')';
   } else {
-    node.reasonml = externName + "(" + objArg + reargs + ")";
+    translated.code = externName + "(" + objArg + reargs + ")";
   }
-  return node;
+  return translated;
+};
+
+function lazy(f) {
+  var cached;
+  var hasCached = false;
+  return function() {
+    if (!hasCached) {
+      cached = f();
+      hasCached = true;
+    }
+    return cached;
+  };
 };
 
 /*
  * TODO:
  * - astNodeParents is private. getParent() to access.
- * - make node.reasonml a lazy function
  * */
 var defaultBody = {
   translate: function(code, node) {
-    node.reasonml = '';
-    /*
-    throw(new Error('unimplemented node type: ' + node.type + ', parent: ' + parentNode.type));
-    */
     throw(new Error('unimplemented node type: ' + node.type));
-    return node;
   },
   tests: []
 };
@@ -439,16 +446,32 @@ var test = {
   out2: 'fish'
 };
 
+function isMutable(code, node) {
+  if (node.type !== 'Identifier') {
+    throw new Error('node mutable check only works on Identifier');
+  }
+  var parentNode = state.astNodeParents[node[globalIndexName]];
+  var parentNode2 = state.astNodeParents[parentNode[globalIndexName]];
+  var mutable =
+    parentNode2.type == 'ForStatement' &&
+    parentNode2.test[globalIndexName] == parentNode[globalIndexName];
+  var name = node.name;
+  mutable = mutable || node.name in state.astMutables;
+  return mutable;
+}
+
 /* List of syntax nodes from
  * https://github.com/jquery/esprima/blob/master/src/syntax.ts .*/
 var processNodes = {
   AssignmentExpression: {
     translate: function(code, node) {
+      var translated = {};
       var op = node.operator;
-      if (node.left.reasonmlSet !== undefined) {
+      var leftRML = node.left.translate();
+      if (node.left.codeSet !== undefined) {
         /* Property */
         if (op == '=') {
-          node.reasonml = node.left.reasonmlSet + '(' + node.left.reasonmlLeft + ", " + node.right.reasonml + ')';
+          translated.code = leftRML.codeSet + '(' + leftRML.codeLeft + ", " + node.right.translate().code + ')';
         } else {
           /* *= /= += -= */
           var op2 = op[0];
@@ -456,19 +479,19 @@ var processNodes = {
               op2 += '.';
           }
           var paddedOp = ' ' + op2 + ' ';
-          node.reasonml =
-            node.left.reasonmlSet +
-            '(' + node.left.reasonmlLeft + ", " +
-            '(' + node.left.reasonml + paddedOp + node.right.reasonml + '))';
+          node.translated =
+            leftRML.codeSet +
+            '(' + leftRML.codeLeft + ", " +
+            '(' + leftRML.code + paddedOp + node.right.translate().code + '))';
         }
       } else {
         /* Plain assignment */
         if (op == '=') {
-          var mutable = 'reasonmlMutable' in node.left && node.left.reasonmlMutable;
+          var mutable = node.left.type === 'Identifier' && isMutable(code, node.left);
           if (mutable) {
-            node.reasonml = node.left.reasonml + ' := ' + node.right.reasonml;
+            translated.code = node.left.translate().code + ' := ' + node.right.translate().code;
           } else {
-            node.reasonml = 'let ' + node.left.reasonml + ' = ' + node.right.reasonml;
+            translated.code = 'let ' + node.left.translate().code + ' = ' + node.right.translate().code;
           }
         } else {
           /* *= /= += -= */
@@ -477,24 +500,25 @@ var processNodes = {
               op2 += '.';
           }
           var paddedOp = ' ' + op2 + ' ';
-          node.reasonml =
-            node.left.reasonml + ' := ' +
-            node.left.reasonml + '^' + paddedOp + '(' + node.right.reasonml + ')';
+          translated.code =
+            node.left.translate().code + ' := ' +
+            node.left.translate().code + '^' + paddedOp + '(' + node.right.translate().code + ')';
         }
       }
-      return node;
+      return translated;
     },
     tests: []
   },
   AssignmentPattern: defaultBody,
   ArrayExpression: {
     translate: function(code, node) {
+      var translated = {};
       var args = [];
       for (var i = 0; i < node.elements.length; i++) {
-        args.push(node.elements[i].reasonml);
+        args.push(node.elements[i].translate().code);
       }
-      node.reasonml = '[| ' + args.join(', ') + ' |]';
-      return node;
+      translated.code = '[| ' + args.join(', ') + ' |]';
+      return translated;
     },
     tests: []
   },
@@ -503,24 +527,26 @@ var processNodes = {
   AwaitExpression: defaultBody,
   BlockStatement: {
     translate: function(code, node) {
+      var translated = {};
       var rml = [];
       for (var i = 0; i < node.body.length; i++) {
         var child = node.body[i];
-        rml.push(child.reasonml);
+        rml.push(child.translate().code);
       }
-      node.reasonml = '{\n' + rml.join('\n') + '\n' + '}\n';
-      return node;
+      translated.code = '{\n' + rml.join('\n') + '\n' + '}\n';
+      return translated;
     },
     tests: []
   },
   BinaryExpression: {
     translate: function(code, node) {
+      var translated = {};
       var operator = node.operator;
       if (operator == '%') {
         operator = 'mod';
       }
-      var left = node.left.reasonml;
-      var right = node.right.reasonml;
+      var left = node.left.translate().code;
+      var right = node.right.translate().code;
       if (node[globalTypeName] === 'float' ||
           node.left[globalTypeName] === 'float' ||
           node.right[globalTypeName] === 'float') {
@@ -546,17 +572,18 @@ var processNodes = {
           right = 'string_of_float(' + right + ')';
         }
       }
-      node.reasonml = '(' + left + ' ' + operator + ' ' + right + ')';
-      return node;
+      translated.code = '(' + left + ' ' + operator + ' ' + right + ')';
+      return translated;
     },
     tests: []
   },
   BreakStatement: defaultBody,
   CallExpression: {
     translate: function(code, node) {
+      var translated = {};
       if (getCode(code, node).startsWith("console.log")) {
-        node.reasonml = 'Js.log(' + joinArgs(node) + ')';
-        return node;
+        translated.code = 'Js.log(' + joinArgs(node) + ')';
+        return translated;
       } else {
         return applyExpression({
             type: 'call',
@@ -574,16 +601,17 @@ var processNodes = {
   ClassExpression: defaultBody,
   ConditionalExpression: {
     translate: function(code, node) {
-      var first = node.test.reasonml;
-      var second = node.consequent.reasonml;
-      var third = node.alternate.reasonml;
+      var translated = {};
+      var first = node.test.translate().code;
+      var second = node.consequent.translate().code;
+      var third = node.alternate.translate().code;
       if (node.consequent[globalTypeName] != node.alternate[globalTypeName]) {
         if (node.consequent[globalTypeName] == 'string' && node.alternate[globalTypeName] == 'int') {
           third = 'string_of_int(' + third + ')';
         }
       }
-      node.reasonml = 'if (Js.to_bool(' + first + ')) {' + second + '} else {' + third + '}';
-      return node;
+      translated.code = 'if (Js.to_bool(' + first + ')) {' + second + '} else {' + third + '}';
+      return translated;
     },
     tests: []
   },
@@ -597,6 +625,7 @@ var processNodes = {
   ExportSpecifier: defaultBody,
   ExpressionStatement: {
     translate: function(code, node) {
+      var translated = {};
       var prefix = '';
       var suffix = '';
       if (node.expression[globalTypeName] !== 'unit' && node.expression[globalTypeName] !== undefined) {
@@ -613,26 +642,24 @@ var processNodes = {
       /*
       consoleLog(getCode(code, node), node.expression[globalTypeName]);
       */
-      node.reasonml = prefix + node.expression.reasonml + suffix;
-      if (!node.reasonml.trim().endsWith(';')) {
-        node.reasonml += statementTerminator;
+      translated.code = prefix + node.expression.translate().code + suffix;
+      if (!translated.code.trim().endsWith(';')) {
+        translated.code += statementTerminator;
       }
-      return node;
+      return translated;
     },
     tests: []
   },
   ForStatement: {
     translate: function(code, node) {
-      node.reasonml =
-        node.init.reasonml +
-        'while (Js.to_bool(' + node.test.reasonml + ')) {\n' +
-          /*
-        node.init.reasonmlAlias +
-        */
-        node.body.reasonml + statementTerminator +
-        node.update.reasonml + statementTerminator +
+      var translated = {};
+      translated.code =
+        node.init.translate().code +
+        'while (Js.to_bool(' + node.test.translate().code + ')) {\n' +
+        node.body.translate().code + statementTerminator +
+        node.update.translate().code + statementTerminator +
         '}' + statementTerminator;
-      return node;
+      return translated;
     },
     tests: []
   },
@@ -640,23 +667,26 @@ var processNodes = {
   ForInStatement: defaultBody,
   FunctionDeclaration: {
     translate: function(code, node) {
-      node.reasonml =
-        'let ' + node.id.reasonml +
+      var translated = {};
+      translated.code =
+        'let ' + node.id.translate().code +
         ' = (' + joinParams(node) + ') => ' +
-        node.body.reasonml + statementTerminator;
-      return node;
+        node.body.translate().code + statementTerminator;
+      return translated;
     },
     tests: []
   },
   FunctionExpression: {
     translate: function(code, node) {
-      node.reasonml = '(' + joinParams(node) + ') => ' + node.body.reasonml;
-      return node;
+      var translated = {};
+      translated.code = '(' + joinParams(node) + ') => ' + node.body.translate().code;
+      return translated;
     },
     tests: []
   },
   Identifier: {
     translate: function(code, node) {
+      var translated = {};
       if (node.name in globalsMap) {
         var externName = node.name.toLowerCase();
         var attributes = ['[@bs.val]'];
@@ -670,17 +700,12 @@ var processNodes = {
           retType: retType,
           callName: callName
         };
-        node.reasonml = externName;
+        translated.code = externName;
       } else {
         var parentNode = state.astNodeParents[node[globalIndexName]];
-        var parentNode2 = state.astNodeParents[parentNode[globalIndexName]];
-        var mutable =
-          parentNode2.type == 'ForStatement' &&
-          parentNode2.test[globalIndexName] == parentNode[globalIndexName];
         var name = node.name;
-        mutable = mutable || name in state.astMutables;
-        node.reasonmlMutable = mutable;
         var deref = '^';
+        var mutable = isMutable(code, node);
         if ((parentNode.type == 'VariableDeclarator' &&
              parentNode.id[globalIndexName] == node[globalIndexName]) ||
             (parentNode.type == 'AssignmentExpression' &&
@@ -693,27 +718,28 @@ var processNodes = {
           name = name + '_';
         }
         if (mutable) {
-          node.reasonml = name + 'Ref' + deref;
+          translated.code = name + 'Ref' + deref;
         } else {
-          node.reasonml = name;
+          translated.code = name;
         }
       };
-      return node;
+      return translated;
     },
     tests: []
   },
   IfStatement: {
     translate: function(code, node) {
-      var first = node.test.reasonml;
-      var second = node.consequent.reasonml;
-      var third = node.alternate.reasonml;
+      var translated = {};
+      var first = node.test.translate().code;
+      var second = node.consequent.translate().code;
+      var third = node.alternate.translate().code;
       if (node.consequent[globalTypeName] != node.alternate[globalTypeName]) {
         if (node.consequent[globalTypeName] == 'string' && node.alternate[globalTypeName] == 'int') {
           third = 'string_of_int(' + third + ')';
         }
       }
-      node.reasonml = 'if (Js.to_bool(' + first + ')) ' + second + ' else ' + third + statementTerminator;
-      return node;
+      translated.code = 'if (Js.to_bool(' + first + ')) ' + second + ' else ' + third + statementTerminator;
+      return translated;
     },
     tests: [
       {
@@ -733,22 +759,23 @@ var processNodes = {
   ImportSpecifier: defaultBody,
   Literal: {
     translate: function(code, node) {
+      var translated = {};
       if (node[globalTypeName] == 'string') {
-        node.reasonml = '"' + node.value + '"';
+        translated.code = '"' + node.value + '"';
       } else if (node[globalTypeName] == 'Js.boolean') {
         if (node.raw === 'true') {
-          node.reasonml = 'Js.true_';
+          translated.code = 'Js.true_';
         } else if (node.raw === 'false') {
-          node.reasonml = 'Js.false_';
+          translated.code = 'Js.false_';
         } else {
-          node.reasonml = node.raw;
+          translated.code = node.raw;
         }
       } else if (node.raw === 'null') {
-        node.reasonml = 'Js.Nullable.null';
+        translated.code = 'Js.Nullable.null';
       } else {
-        node.reasonml = node.raw;
+        translated.code = node.raw;
       }
-      return node;
+      return translated;
     },
     tests: []
   },
@@ -757,9 +784,11 @@ var processNodes = {
   MemberExpression: defaultBody,
   MemberExpression: {
     translate: function(code, node) {
+      var translated = {};
       var parentNode = state.astNodeParents[node[globalIndexName]];
       var useRight = null;
       var qual = '';
+      var translated = {};
       if (parentNode.type == 'AssignmentExpression' &&
           parentNode.left[globalIndexName] == node[globalIndexName]) {
         qual = 'set';
@@ -782,8 +811,8 @@ var processNodes = {
           callName: callName
         };
         externName = addExtern(externName, value);
-        node.reasonmlSet = externName;
-        node.reasonmlLeft = node.object.reasonml;
+        translated.codeSet = externName;
+        translated.codeLeft = node.object.translate().code;
         useRight = parentNode.right[globalTypeName];
       }
       var retType = node[globalTypeName];
@@ -791,8 +820,7 @@ var processNodes = {
         if (useRight !== null) {
           retType = useRight;
         } else {
-          node.reasonml = '/* Unresolved MemberExpression */';
-          return node;
+          throw new Error('Unresolved MemberExpression');
         };
       };
       qual = 'get';
@@ -829,20 +857,20 @@ var processNodes = {
       }
       externName = addExtern(externName, value);
       if (modName !== null) {
-        node.reasonml = externName;
+        translated.code = externName;
       } else {
         /*
-        node.reasonml = externName + '(' + node.object.reasonml + ')';
+        translated.code = externName + '(' + node.object.translate().code + ')';
         */
         if (!node.computed) {
-          node.reasonml = '(' + node.object.reasonml + ' |. ' + externName + ')';
+          translated.code = '(' + node.object.translate().code + ' |. ' + externName + ')';
         } else {
-          node.reasonml =
-            '(' + node.object.reasonml + ' |. ' + externName +
-            '(' + node.property.reasonml + ')' + ')';
+          translated.code =
+            '(' + node.object.translate().code + ' |. ' + externName +
+            '(' + node.property.translate().code + ')' + ')';
         }
       }
-      return node;
+      return translated;
     },
     tests: [],
   },
@@ -857,32 +885,34 @@ var processNodes = {
         code,
         node);
     },
-    tests: []             
+    tests: []
   },
   ObjectExpression: {
     translate: function(code, node) {
+      var translated = {};
       var rml = [];
       for (var i = 0; i < node.properties.length; i++) {
         var prop = node.properties[i];
         var name = prop.key.name;
         var value = prop.value;
-        rml.push('"' + name + '": ' + value.reasonml + '\n');
+        rml.push('"' + name + '": ' + value.translate().code + '\n');
       };
-      node.reasonml = '{' + rml.join(',') + '}';
-      return node;
+      translated.code = '{' + rml.join(',') + '}';
+      return translated;
     },
     tests: []
   },
   ObjectPattern: defaultBody,
   Program: {
     translate: function(code, node) {
+      var translated = {};
       var rml = [];
       for (var i = 0; i < node.body.length; i++) {
         var child = node.body[i];
-        rml.push(child.reasonml);
+        rml.push(child.translate().code);
       }
-      node.reasonml = rml.join('\n');
-      return node;
+      translated.code = rml.join('\n');
+      return translated;
     },
     tests: [
       {
@@ -897,16 +927,16 @@ var processNodes = {
   },
   Property: {
     translate: function(code, node) {
-      node.reasonml = "/* Shouldn't show. Processed by ObjectExpression */";
-      return node;
+      throw new Error("Property should be processed by ObjectExpression.");
     },
     tests: []
   },
   RestElement: defaultBody,
   ReturnStatement: {
     translate: function(code, node) {
-      node.reasonml = node.argument.reasonml;
-      return node;
+      var translated = {};
+      translated.code = node.argument.translate().code;
+      return translated;
     },
     tests: []
   },
@@ -923,69 +953,58 @@ var processNodes = {
   TryStatement: defaultBody,
   UnaryExpression: {
     translate: function(code, node) {
+      var translated = {};
       if (node.prefix != true) {
         throw(new Error('suffix unary operator not implemented'));
       }
       if (node.operator == '+') {
-        node.reasonml = '(+ ' + node.argument.reasonml + ')';
+        translated.code = '(+ ' + node.argument.translate().code + ')';
       } else if (node.operator == '-') {
-        node.reasonml = '(- ' + node.argument.reasonml + ')';
+        translated.code = '(- ' + node.argument.translate().code + ')';
       } else {
         throw(new Error('prefix unary operator not implemented: ' + node.operator));
       }
-      return node;
+      return translated;
     },
     tests: [],
   },
   UpdateExpression: {
     translate: function(code, node) {
+      var translated = {};
       if (node.prefix == true) {
         throw(new Error('prefix operator not implemented'));
       }
       if (node.operator == '++') {
-        node.reasonml = '' + node.argument.reasonml + ' := ' + node.argument.reasonml + '^ + 1';
+        translated.code = '' + node.argument.translate().code + ' := ' + node.argument.translate().code + '^ + 1';
       } else if (node.operator == '--') {
-        node.reasonml = '' + node.argument.reasonml + ' := ' + node.argument.reasonml + '^ - 1';
+        translated.code = '' + node.argument.translate().code + ' := ' + node.argument.translate().code + '^ - 1';
       } else {
         throw(new Error('suffix operator not implemented: ' + node.operator));
       }
-      return node;
+      return translated;
     },
     tests: []
   },
   VariableDeclaration: {
     translate: function(code, node) {
+      var translated = {};
       var rml = [];
       /*
       var rmla = [];
       */
       var parentNode = state.astNodeParents[node[globalIndexName]];
-      /*
-      var mutable = parentNode.type == 'ForStatement' && parentNode.init[globalIndexName] == node[globalIndexName];
-      */
       for (var i = 0; i < node.declarations.length; i++) {
-        var name = node.declarations[i].id.reasonml;
-        var mutable =
-          'reasonmlMutable' in node.declarations[i].id &&
-          node.declarations[i].id.reasonmlMutable === true;
+        var name = node.declarations[i].id.translate().code;
+        var mutable = isMutable(code, node.declarations[i].id);
         var value = null;
         if (node.declarations[i].init != null) {
-          value = node.declarations[i].init.reasonml;
+          value = node.declarations[i].init.translate().code;
         } else {
           value = '/* TODO: Uninitialized var */ 0';
           mutable = true;
         };
 
-        /*
-        var s2 = 'let ' + name + ' = ' + name + 'Ref^';
-        if (!s2.trim().endsWith(';')) {
-          s2 += statementTerminator;
-        }
-        rmla.push(s2);
-        */
-
         if (mutable) {
-          /* name = name + 'Ref'; */
           value = 'ref(' + value + ')';
         }
         var s = 'let ' + name + ' = ' + value;
@@ -1001,18 +1020,14 @@ var processNodes = {
           rml.push(s);
         }
       }
-      node.reasonml = rml.join('\n');
-      /*
-      node.reasonmlAlias = rmla.join('\n');
-      */
-      return node;
+      translated.code = rml.join('\n');
+      return translated;
     },
     tests: []
   },
   VariableDeclarator: {
     translate: function(code, node) {
-      node.reasonml = "/* Shouldn't show. Processed by VariableDeclaration */";
-      return node;
+      throw new Error("VariableDeclarator should be processed by VariableDeclaration.");
     },
     tests: []
   },
@@ -1024,16 +1039,14 @@ var processNodes = {
 /* Comment nodes */
 processNodes.Block = {
   translate: function(code, node) {
-    node.reasonml = "/* Shouldn't show. Comments processed elsewhere.*/";
-    return node;
+    throw new Error("Comments processed elsewhere.");
   },
   tests: []
 };
 
 processNodes.Line = {
   translate: function(code, node) {
-    node.reasonml = "/* Shouldn't show. Comments processed elsewhere.*/";
-    return node;
+    throw new Error("Comments processed elsewhere.");
   },
   tests: []
 };
@@ -1048,23 +1061,29 @@ for (var name in processNodes) {
   }
 }
 
+var getTranslate = function(code, node, translate) {
+  return function() {
+    var retval = translate(code, node);
+    if ('leadingComments' in node) {
+      var comment = []
+      for (var i = 0; i < node.leadingComments.length; i++) {
+        comment.push(node.leadingComments[i].value);
+      }
+      comment = comment.join('\n');
+      retval.code = '/*' + comment + ' */' + '\n' + retval.code;
+    }
+    return retval;
+  };
+};
+
 function postProcess(code, parentNode, node) {
-  var retval = node;
   if (node.type in processNodes) {
-    var process = processNodes[node.type].translate;
-    retval = process(code, node);
+    var translate = getTranslate(code, node, processNodes[node.type].translate);
+    node.translate = lazy(translate);
   } else {
     throw(new Error('unimplemented node type: ' + node.type + ', parent: ' + parentNode.type));
   };
-  if ('leadingComments' in retval) {
-    var comment = []
-    for (var i = 0; i < retval.leadingComments.length; i++) {
-      comment.push(retval.leadingComments[i].value);
-    }
-    comment = comment.join('\n');
-    retval.reasonml = '/*' + comment + ' */' + '\n' + retval.reasonml;
-  }
-  return retval;
+  return node;
 };
 
 function U(index, arg) {
@@ -1557,16 +1576,18 @@ export function compile(data, evalTimeout) {
       try {
         var syntaxReasonML = rewrite(data, syntax2, postProcess);
 
+        var reasonmlCode = syntaxReasonML.translate().code;
+        
         var decl = declareExterns().join('\n');
-
-        var types = declareTypes(syntaxReasonML.reasonml, decl, '');
+        
+        var types = declareTypes(reasonmlCode, decl, '');
 
         /* TODO: do recursive lookup of types instead of just 2 steps */
-        var types2 = declareTypes(syntaxReasonML.reasonml, decl, types.join('\n'));
+        var types2 = declareTypes(reasonmlCode, decl, types.join('\n'));
 
         var header = types2.join('\n') + '\n' + decl;
 
-        var body = syntaxReasonML.reasonml;
+        var body = reasonmlCode;
 
         var program = header + '\n' + body;
 
