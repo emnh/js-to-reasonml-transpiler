@@ -321,7 +321,8 @@ function addArgTypes(node, argTypes) {
 function getModName(code, node) {
   var modName = null;
   var resolved = null;
-  var parts = getCode(code, node).replace('\n', '').replace(' ', '').split('.');
+  /* TODO: walk identifiers instead of code snippet */
+  var parts = getCode(code, node).replace(/\n/g, '').replace(/ /g, '').split('.');
   if (parts.length > 1) {
     modName = parts[0];
     if (modName in modMap) {
@@ -405,7 +406,7 @@ function applyExpression(opts, code, node) {
   /*
   if (modName !== null && opts.type == 'new') {
   */
-  if (modName !== null && modResolved !== null) {
+  if (modName !== null && modResolved !== null && objArg.match(/^[0-9a-zA-Z\.]*$/)) {
     if (opts.type === 'call') {
       /* We use val instead of send if global function on module. */
       attributes[0] = '[@bs.val]';
