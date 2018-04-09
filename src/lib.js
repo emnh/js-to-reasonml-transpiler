@@ -112,6 +112,17 @@ function getType(obj, rootNode, marker) {
     obj[globalTypeDecl] = state.reasonTypes[obj[globalTypeName]];
     return usageT;
   };
+  if (rootNode.type == 'CallExpression' &&
+      rootNode.callee.type == 'Identifier' &&
+      rootNode.callee.name == 'require') {
+    var modName = rootNode.arguments[0].value;
+    modName = modName.replace(/[^a-zA-Z0-9]/g, '');
+    var modT = 'module' + modName + 'T';
+    obj[globalTypeName] = modT;
+    obj[globalTypeDecl] = {};
+    state.reasonTypes[modT] = obj[globalTypeDecl];
+    return modT;
+  }
   switch (typeof(obj)) {
     case 'number':
       if (obj % 1 === 0) {
@@ -146,7 +157,7 @@ function getType(obj, rootNode, marker) {
         state.reasonTypes[obj[globalTypeName]] = obj[globalTypeDecl];
         return obj[globalTypeName];
       };
-      if (globalIdName in obj && globalIdName == marker) {
+      if (globalIdName in obj && obj[globalIdName] == marker) {
         return 'recursiveT';
       };
       obj[globalIdName] = marker;
@@ -323,6 +334,13 @@ function addArgTypes(node, argTypes) {
   }
 };
 
+function renameReserved(name) {
+  if (name in reservedMap) {
+    name += '_';
+  }
+  return name;
+}
+
 function getModName(code, node) {
   var modName = null;
   var resolved = null;
@@ -330,6 +348,7 @@ function getModName(code, node) {
   var parts = getCode(code, node).replace(/\n/g, '').replace(/ /g, '').split('.');
   if (parts.length > 1) {
     modName = parts[0];
+    modName = renameReserved(modName);
     if (modName in modMap) {
       resolved = modMap[modName];
     };
@@ -356,6 +375,15 @@ function addExtern(externName, value) {
   }
   state.reasonExterns[externName] = value;
   return externName;
+}
+
+function getScope(parts) {
+  var scope = [];
+  for (var i = 1; i < parts.length - 1; i++) {
+    scope.push('"' + parts[i] + '"');
+  }
+  scope = '[@bs.scope (' + scope.join(', ') + ')]';
+  return scope;
 }
 
 function applyExpression(opts, code, node) {
@@ -411,7 +439,7 @@ function applyExpression(opts, code, node) {
   /*
   if (modName !== null && opts.type == 'new') {
   */
-  if (modName !== null && modResolved !== null && objArg.match(/^[0-9a-zA-Z\.]*$/)) {
+  if (modName !== null && modResolved !== null && objArg.match(/^[0-9a-zA-Z\._]*$/)) {
     if (opts.type === 'call') {
       /* We use val instead of send if global function on module. */
       attributes[0] = '[@bs.val]';
@@ -422,9 +450,7 @@ function applyExpression(opts, code, node) {
     }
     attributes.push('[@bs.module "' + modResolved + '"]');
     if (parts.length > 2) {
-      for (var i = 1; i < parts.length - 1; i++) {
-        attributes.push('[@bs.scope "' + parts[i] + '"]');
-      }
+      attributes.push(getScope(parts));
     }
   }
   externName = addExtern(externName, value);
@@ -474,7 +500,8 @@ function node(nodeObject) {
   return nodeObject;
 }
 
-var test = {
+export var test = {
+  external: require('./external.js'),
   statement1: 'fakeConsole.log("shrimp");',
   out1: 'shrimp',
   statement2: 'fakeConsole.log("fish");',
@@ -766,12 +793,22 @@ var processNodes = {
       {
         program:
           `
+            var external = require('../src/external.js');
             fakeConsole.log(Object.create(null));
             fakeConsole.log(Math.sin(${test.outFloat1}));
+            var a = external.createA("${test.out1}");
+            fakeConsole.log(a);
+            fakeConsole.log(external.acceptA1(a));
+            fakeConsole.log(external.scoped.acceptA2(a));
+            fakeConsole.log(external.scoped.scoped2.acceptA3(a));
           `,
         out: [
           {},
-          Math.sin(test.outFloat1)
+          Math.sin(test.outFloat1),
+          test.external.createA(test.out1),
+          test.external.acceptA1(test.external.createA(test.out1)),
+          test.external.acceptA1(test.external.createA(test.out1)),
+          test.external.acceptA1(test.external.createA(test.out1)),
         ]
       }
     ]
@@ -881,9 +918,7 @@ var processNodes = {
       var translated = {};
       if (node.name in globalsMap) {
         var externName = node.name.toLowerCase();
-        if (externName in reservedMap) {
-          externName += '_';
-        }
+        externName = renameReserved(externName);
         var attributes = ['[@bs.val]'];
         var argTypes = ['unit'];
         var retType = node[globalTypeName];
@@ -908,9 +943,7 @@ var processNodes = {
             parentNode.type == 'UpdateExpression') {
           deref = '';
         }
-        if (name in reservedMap) {
-          name += '_';
-        }
+        name = renameReserved(name);
         if (mutable) {
           translated.code = name + 'Ref' + deref;
         } else {
@@ -1064,9 +1097,7 @@ var processNodes = {
         value.noargs = true;
         attributes.push('[@bs.module "' + modResolved + '"]');
         if (parts.length > 2) {
-          for (var i = 1; i < parts.length - 1; i++) {
-            attributes.push('[@bs.scope "' + parts[i] + '"]');
-          }
+          attributes.push(getScope(parts));
         }
       }
       externName = addExtern(externName, value);
@@ -1807,7 +1838,13 @@ export function compile(data, evalTimeout) {
 
   var code = escodegen.generate(syntaxForTypes, option);
 
-  eval(code);
+  try {
+    eval(code);
+  } catch(error) {
+    console.log("Eval failed on:");
+    console.log(code);
+    throw(error);
+  }
 
   var timeoutPromise = new Promise((resolve, reject) => {
     setTimeout(function() {
