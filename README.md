@@ -356,7 +356,7 @@ Go to http://localhost:8080/test .
 
 ```bash
 # run tests script
-npm run tests
+npm run test
 ```
 
 # Supported syntax
