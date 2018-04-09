@@ -7,7 +7,8 @@
     "clean": "bsb -clean-world",
     "webpack": "webpack -w",
     "dev": "webpack-dev-server --hot",
-    "start": "concurrently --raw 'npm run bsbwatch' 'npm run dev'"
+    "start": "concurrently --raw 'npm run bsbwatch' 'npm run dev'",
+    "test": "nyc node src/runtests.js"
   },
   "keywords": [
     "BuckleScript"
@@ -15,6 +16,7 @@
   "author": "Eivind Magnus Hvidevold",
   "license": "MIT",
   "devDependencies": {
+    "nyc": "^11.6.0",
     "webpack": "^3.11.0",
     "webpack-bundle-analyzer": "^2.11.0",
     "webpack-dev-server": "^2.11.1"
