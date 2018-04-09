@@ -38,8 +38,10 @@ var srcDirName = dirName + '/src';
     } catch(error) {
       console.log("Test failed transpile: ", name);
       console.log(error.stack.toString());
+      /*
       var ast = Lib.compileAST(program);
       console.log(ast);
+      */
       continue;
     }
     var tempFileName = srcDirName + '/Temp' + i + '.re';
