@@ -3,10 +3,10 @@
 import css from '../css/codemirror.css';
 
 /*
-import scriptData from './example.txt';
+import scriptData from '../examples/pixiBasicsMega.txt';
 */
 
-import scriptData from '../examples/pixiBasicsMega.txt';
+import scriptData from './example.txt';
 
 var evalTimeout = 10000;
 
