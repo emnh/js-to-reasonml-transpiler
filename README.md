@@ -21,12 +21,15 @@ Pages](https://emnh.github.io/js-to-reasonml-transpiler). Tested with:
 This is a helper script to port small examples from JS to ReasonML. It should
 be mainly for generating a baseline for externals, unless it grows to something
 bigger :p . Requires to actually run the code with eval because it will inspect
-the types for declaration at runtime.
+the types for declaration at runtime. Code path coverage in example must be
+100% for now (TODO: implement partial transpilation with unresolvedAnyT if
+requested).
 
 Why eval and not flow? I tried flow and it wasn't able to infer much, while
 evaling the code gets all types without much effort. Conditional code paths may
-present complications though, so try to avoid them in example code. See "Manual
-labour" for more information.
+present complications though, so try to avoid them in example code, or if used
+you must ensure that all conditional paths are evaluated at least once for
+types to resolve. See "Manual labour" for more information.
 
 I am using :
  - Esprima (reading js)
@@ -295,9 +298,8 @@ xRef := xRef^ * 2;
 
 This section lists workarounds for unimplemented features and transpilations.
 
- - All branches of if statements are evaluated to get the types. If you have if
-   statements in your code, think about the implications of that (infinite
-   loops and other problems etc). TODO: Only execute all branches once.
+ - It is up to you to ensure that all branches of if statements are evaluated
+   at least once to get the types.
  - Control flow keywords like continue and break are not supported yet. Early
    return is not supported either: there should only be a single return
    statement at end of function.
@@ -307,11 +309,12 @@ This section lists workarounds for unimplemented features and transpilations.
  - Tweak integer values that should be floats, e.g. write 0.5 + 0.5 instead of
    1 if you want the value to be considered float.
  - Call event handlers manually at least once, after they've been passed around
-   to event registers. Alternatively, set a high grace period (see below) and
+   to event registers. Alternatively, set a high timeout and
    trigger events manually in browser.
- - There is a 2 second grace period to allow for resource load and timer
-   updates etc when evaluating example code. Adjust period in index.js if
-   needed. TODO: create option for this on web page.
+ - By default there is a 10 second timeout to allow for resource load,
+   timer updates etc when evaluating example code. If all types are resolved
+   before the grace period is done, transpilation proceeds at once. Adjust
+   period in index.js if needed. TODO: create option for this on web page.
 
 After transpile:
  - Reorder type definitions if necessary. There is a TODO issue on sorting them
