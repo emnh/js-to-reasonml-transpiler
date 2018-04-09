@@ -356,10 +356,8 @@ Go to http://localhost:8080/test .
 
 
 ```bash
-# compile tests script
-npm run webpack
 # run tests script
-node ./dist/runtests.js
+node ./src/runtests.js
 ```
 
 # Supported syntax
