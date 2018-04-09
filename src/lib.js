@@ -36,11 +36,16 @@ var globalsMap = {
   'window': {},
   'console': {},
   'Math': {},
-  'fakeConsole': {}
+  'fakeConsole': {},
+  'Object': {}
 };
 
 var reserved = 'and,as,assert,asr,begin,class,constraint,do,done,downto,else,end,exception,external,false,for,fun,function,functor,if,in,include,inherit,initializer,land,lazy,let,lor,lsl,lsr,lxor,match,method,mod,module,mutable,new,nonrec,object,of,open,or,private,rec,sig,struct,then,to,true,try,type,val,virtual,when,while,with';
 reserved = reserved.split(',');
+var reservedMap = {};
+for (var i = 0; i < reserved.length; i++) {
+  reservedMap[reserved[i]] = true;
+}
 
 var state;
 
@@ -473,7 +478,11 @@ var test = {
   statement1: 'fakeConsole.log("shrimp");',
   out1: 'shrimp',
   statement2: 'fakeConsole.log("fish");',
-  out2: 'fish'
+  out2: 'fish',
+  outFloat1: '0.123',
+  outFloat2: '0.456',
+  outInt1: '234',
+  outInt2: '567'
 };
 
 function isMutable(code, node) {
@@ -498,16 +507,23 @@ var processNodes = {
       var translated = {};
       var op = node.operator;
       var leftRML = node.left.translate();
+      var getOp = function(op) {
+        var op2 = op[0];
+        if (node.right[globalTypeName] === 'float') {
+            op2 += '.';
+        }
+        if (op2 === '+' && node.right[globalTypeName] === 'string') {
+          op2 = '++';
+        }
+        return op2;
+      }
       if (leftRML.codeSet !== undefined) {
-        /* Property */
+        /* Property assignment */
         if (op == '=') {
           translated.code = leftRML.codeSet + '(' + leftRML.codeLeft + ", " + node.right.translate().code + ')';
         } else {
           /* *= /= += -= */
-          var op2 = op[0];
-          if (node.right[globalTypeName] == 'float') {
-              op2 += '.';
-          }
+          var op2 = getOp(op);
           var paddedOp = ' ' + op2 + ' ';
           translated.code =
             leftRML.codeSet +
@@ -525,10 +541,7 @@ var processNodes = {
           }
         } else {
           /* *= /= += -= */
-          var op2 = op[0];
-          if (node.right[globalTypeName] == 'float') {
-              op2 += '.';
-          }
+          var op2 = getOp(op);
           var paddedOp = ' ' + op2 + ' ';
           translated.code =
             node.left.translate().code + ' := ' +
@@ -537,7 +550,68 @@ var processNodes = {
       }
       return translated;
     },
-    tests: []
+    tests: [
+      {
+        name: 'PropertyAssignmentTest',
+        program:
+          `
+          var a = Object.create(null);
+          a.x = "${test.out1}";
+          fakeConsole.log(a.x);
+          `,
+        out: [test.out1]
+      },
+      {
+        name: 'PropertyUpdateTest',
+        program:
+          `
+          var a = Object.create(null);
+          a.x = "${test.out1}";
+          a.x += "${test.out2}";
+          a.y = ${test.outInt1};
+          a.y += ${test.outInt2};
+          a.z = ${test.outFloat1};
+          a.z += ${test.outFloat2};
+          fakeConsole.log(a.x);
+          fakeConsole.log(a.y);
+          fakeConsole.log(a.z);
+          `,
+        out: [
+          test.out1 + test.out2,
+          parseInt(test.outInt1) + parseInt(test.outInt2),
+          parseFloat(test.outFloat1) + parseFloat(test.outFloat2)
+        ]
+      },
+      {
+        name: 'SimpleAssignmentTest',
+        program:
+          `
+          var a = "${test.out1}";
+          fakeConsole.log(a);
+          `,
+        out: [test.out1]
+      },
+      {
+        name: 'SimpleUpdateTest',
+        program:
+          `
+          var x = "${test.out1}";
+          x += "${test.out2}";
+          var y = ${test.outInt1};
+          y += ${test.outInt2};
+          var z = ${test.outFloat1};
+          z += ${test.outFloat2};
+          fakeConsole.log(x);
+          fakeConsole.log(y);
+          fakeConsole.log(z);
+          `,
+        out: [
+          test.out1 + test.out2,
+          parseInt(test.outInt1) + parseInt(test.outInt2),
+          parseFloat(test.outFloat1) + parseFloat(test.outFloat2)
+        ]
+      },
+    ]
   },
   AssignmentPattern: defaultBody,
   ArrayExpression: {
@@ -550,7 +624,15 @@ var processNodes = {
       translated.code = '[| ' + args.join(', ') + ' |]';
       return translated;
     },
-    tests: []
+    tests: [
+      {
+        program:
+          `
+            fakeConsole.log([1, 2, 3]);
+          `,
+        out: [[1, 2, 3]]
+      }
+    ]
   },
   ArrayPattern: defaultBody,
   ArrowFunctionExpression: defaultBody,
@@ -730,6 +812,9 @@ var processNodes = {
       var translated = {};
       if (node.name in globalsMap) {
         var externName = node.name.toLowerCase();
+        if (externName in reservedMap) {
+          externName += '_';
+        }
         var attributes = ['[@bs.val]'];
         var argTypes = ['unit'];
         var retType = node[globalTypeName];
@@ -754,9 +839,8 @@ var processNodes = {
             parentNode.type == 'UpdateExpression') {
           deref = '';
         }
-        /* TODO: optimize with dict */
-        if (reserved.includes(name)) {
-          name = name + '_';
+        if (name in reservedMap) {
+          name += '_';
         }
         if (mutable) {
           translated.code = name + 'Ref' + deref;
@@ -780,11 +864,11 @@ var processNodes = {
         }
       }
       if (third !== null) {
-        translated.code = 
+        translated.code =
           'if (' + boolWrapper + '(' + first + ')) ' + second +
           ' else ' + third + statementTerminator;
       } else {
-        translated.code = 
+        translated.code =
           'if (' + boolWrapper + '(' + first + ')) ' + second + statementTerminator;
       }
       return translated;
@@ -1115,9 +1199,12 @@ export var tests = {};
 for (var name in processNodes) {
   var processNode = node(processNodes[name]);
   processNode.name = name;
-  processNodes[name] = processNode;
   for (var i = 0; i < processNode.tests.length; i++) {
-    tests[name + i.toString()] = processNode.tests[i];
+    var testName = name + i.toString();
+    if ('name' in processNode.tests[i]) {
+      testName += '/' + processNode.tests[i].name;
+    }
+    tests[testName] = processNode.tests[i];
   }
 }
 
