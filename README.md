@@ -354,10 +354,9 @@ Go to http://localhost:8080/test .
 
 ## Running tests
 
-
 ```bash
 # run tests script
-node ./src/runtests.js
+npm run tests
 ```
 
 # Supported syntax
