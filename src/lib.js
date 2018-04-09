@@ -762,7 +762,19 @@ var processNodes = {
           node);
       }
     },
-    tests: []
+    tests: [
+      {
+        program:
+          `
+            fakeConsole.log(Object.create(null));
+            fakeConsole.log(Math.sin(${test.outFloat1}));
+          `,
+        out: [
+          {},
+          Math.sin(test.outFloat1)
+        ]
+      }
+    ]
   },
   CatchClause: defaultBody,
   ClassBody: defaultBody,
