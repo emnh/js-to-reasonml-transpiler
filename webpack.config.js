@@ -4,7 +4,6 @@ var serverConfig = {
   target: 'node',
   entry: {
     node: './src/node.js',
-    runtests: './src/runtests.js'
   },
   output: {
     path: path.resolve(__dirname, 'dist'),
