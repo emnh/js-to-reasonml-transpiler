@@ -35,6 +35,10 @@ var srcDirName = dirName + '/src';
         }
       };
       compiled = await Lib.compile(program, evalTimeout);
+      // Call compileAST once for code coverage
+      if (i == 1) {
+        var compiledAST = Lib.compileAST(program);
+      }
     } catch(error) {
       console.log("Test failed transpile: ", name);
       console.log(error.stack.toString());
@@ -67,7 +71,6 @@ var srcDirName = dirName + '/src';
             cwd: dirName
           });
       js = fs.readFileSync(jsOutFileName, 'utf-8');
-      js = js.replace('console.log', 'log');
     } catch (error) {
       cleanup();
       console.log("Test failed ReasonML compile: ", name);

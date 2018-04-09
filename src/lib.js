@@ -629,6 +629,16 @@ var processNodes = {
         out: [test.out1]
       },
       {
+        name: 'SimpleAssignmentTestMutable',
+        program:
+          `
+          var a = "${test.out1}";
+          a = "${test.out2}";
+          fakeConsole.log(a);
+          `,
+        out: [test.out2]
+      },
+      {
         name: 'SimpleUpdateTest',
         program:
           `
@@ -715,8 +725,8 @@ var processNodes = {
         }
       } else {
         if (node[globalTypeName] === 'float' ||
-            node.left[globalTypeName] === 'float' ||
-            node.right[globalTypeName] === 'float') {
+            (node.left[globalTypeName] === 'float' && node.right[globalTypeName] === 'int') ||
+            (node.left[globalTypeName] === 'int' && node.right[globalTypeName] === 'float')) {
           operator = operator + '.';
           if (node.left[globalTypeName] == 'int') {
             left = 'float_of_int(' + left + ')';
@@ -749,9 +759,9 @@ var processNodes = {
     },
     tests: [
       {
+        name: 'MathTests',
         program:
           `
-            fakeConsole.log("${test.out1}" + "${test.out2}");
             fakeConsole.log(${test.outInt1} + ${test.outInt2});
             fakeConsole.log(${test.outInt1} - ${test.outInt2});
             fakeConsole.log(${test.outInt1} * ${test.outInt2});
@@ -764,7 +774,6 @@ var processNodes = {
             fakeConsole.log(${test.outFloat2} % ${test.outFloat1});
           `,
         out: [
-          test.out1 + test.out2,
           test.outInt1I + test.outInt2I,
           test.outInt1I - test.outInt2I,
           test.outInt1I * test.outInt2I,
@@ -775,6 +784,24 @@ var processNodes = {
           test.outFloat1F * test.outFloat2F,
           test.outFloat1F / test.outFloat2F,
           test.outFloat2F % test.outFloat1F
+        ]
+      },
+      {
+        name: 'StringTests',
+        program:
+          `
+            fakeConsole.log("${test.out1}" + "${test.out2}");
+            fakeConsole.log("${test.out1}" + ${test.outInt1});
+            fakeConsole.log(${test.outInt1} + "${test.out1}");
+            fakeConsole.log("${test.out1}" + ${test.outFloat1});
+            fakeConsole.log(${test.outFloat1} + "${test.out1}");
+          `,
+        out: [
+          test.out1 + test.out2,
+          test.out1 + test.outInt1,
+          test.outInt1 + test.out1,
+          test.out1 + test.outFloat1,
+          test.outFloat1 + test.out1
         ]
       }
     ]
@@ -799,6 +826,7 @@ var processNodes = {
       {
         program:
           `
+            console.log("Test output");
             var external = require('../src/external.js');
             fakeConsole.log(Object.create(null));
             fakeConsole.log(Math.sin(${test.outFloat1}));
