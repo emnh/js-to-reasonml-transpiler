@@ -1,4 +1,4 @@
-import root from 'window-or-global';
+var myRoot = require('window-or-global');
 
 var Lib = require('./lib.js');
 
@@ -29,7 +29,7 @@ var srcDirName = dirName + '/src';
     var compiled;
     try {
       var logs = [];
-      root.fakeConsole = {
+      myRoot.fakeConsole = {
         log: function(obj) {
           logs.push(obj);
         }
@@ -81,7 +81,7 @@ var srcDirName = dirName + '/src';
     }
     cleanup();
     var logs = [];
-    root.fakeConsole = {
+    myRoot.fakeConsole = {
       log: function(obj) {
         logs.push(obj);
       }

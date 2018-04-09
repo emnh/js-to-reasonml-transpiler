@@ -1,16 +1,21 @@
-import root from 'window-or-global';
+var myRoot = require('window-or-global');
 
 var esprima = require('esprima');
 
 var escodegen = require('escodegen');
 
-export var debug = [false];
+var exports = module.exports;
+
+var debug = [false];
+exports.debug = debug;
 
 /* Experiments showed that flow is not nearly as useful as evaling code to get
  * the types. */
-export var useFlow = [false];
+var useFlow = [false];
+exports.useFlow = useFlow;
 
-export var enableAllIfBranches = [false];
+var enableAllIfBranches = [false];
+exports.enableAllIfBranches = enableAllIfBranches;
 
 var useBoolWrapper = false;
 var boolWrapper = '';
@@ -421,7 +426,7 @@ function applyExpression(opts, code, node) {
       */
     } else {
       /* Top level call */
-      isNotExtern = !(callName in root) && !(modName in modMap);
+      isNotExtern = !(callName in myRoot) && !(modName in modMap);
       createId = callName;
     };
   };
@@ -500,7 +505,7 @@ function node(nodeObject) {
   return nodeObject;
 }
 
-export var test = {
+var test = {
   external: require('./external.js'),
   statement1: 'fakeConsole.log("shrimp");',
   out1: 'shrimp',
@@ -515,6 +520,7 @@ export var test = {
   outInt2: '567',
   outInt2I: 567
 };
+exports.test = test;
 
 function isMutable(code, node) {
   if (node.type !== 'Identifier') {
@@ -1295,7 +1301,8 @@ processNodes.Line = {
   tests: []
 };
 
-export var tests = {};
+var tests = {};
+exports.tests = tests;
 for (var name in processNodes) {
   var processNode = node(processNodes[name]);
   processNode.name = name;
@@ -1744,7 +1751,7 @@ function declareExterns() {
   return externs;
 }
 
-export function compileAST(data) {
+var compileAST = function(data) {
   var syntax;
   if (!useFlow[0]) {
     syntax =
@@ -1805,13 +1812,15 @@ export function compileAST(data) {
   var s = nodePaths.join('\n');
   return s;
 }
+exports.compileAST = compileAST;
 
 var showTypesCallbacks = [];
-export function registerShowTypesCallback(f) {
+var registerShowTypesCallback = function(f) {
   showTypesCallbacks.push(f);
 }
+exports.registerShowTypesCallback = registerShowTypesCallback;
 
-export function compile(data, evalTimeout) {
+var compile = function(data, evalTimeout) {
   var syntax =
     esprima.parse(
       data,
@@ -1876,6 +1885,7 @@ export function compile(data, evalTimeout) {
 
   return Promise.race([timeoutPromise, state.astTypesResolvedPromise]).then(afterEval);
 };
+exports.compile = compile;
 
 /*
 module.exports = {
