@@ -13,3 +13,4 @@ npm-debug.log
 /rebuild/
 /src/Example*.re
 /.nyc_output/
+/src/Test.re
