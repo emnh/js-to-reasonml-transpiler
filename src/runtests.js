@@ -63,7 +63,7 @@ var srcDirName = dirName + '/src';
       } catch (error) {
       }
       cp.execSync(
-          bsb, { 
+          bsb, {
             cwd: dirName
           });
       js = fs.readFileSync(jsOutFileName, 'utf-8');
