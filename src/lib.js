@@ -781,7 +781,7 @@ var processNodes = {
       }
       if (third !== null) {
         translated.code = 
-          'if (' + boolWrapper + '(' + first + ')) ' + second + 
+          'if (' + boolWrapper + '(' + first + ')) ' + second +
           ' else ' + third + statementTerminator;
       } else {
         translated.code = 
@@ -791,12 +791,13 @@ var processNodes = {
     },
     tests: [
       {
-        program: 'if (true) { ' + test.statement1 + ' } else { ' + test.statement2 + '}',
-        out: [test.out1]
-      },
-      {
-        program: 'if (false) { ' + test.statement1 + ' } else { ' + test.statement2 + '}',
-        out: [test.out2]
+        program:
+          'var f = function(test) {' +
+          'if (test) { ' + test.statement1 + ' } else { ' + test.statement2 + '}' +
+          '};' +
+          'f(true);' +
+          'f(false);',
+        out: [test.out1, test.out2]
       }
     ]
   },
