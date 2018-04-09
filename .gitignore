@@ -14,3 +14,4 @@ npm-debug.log
 /src/Example*.re
 /.nyc_output/
 /src/Test.re
+/coverage/

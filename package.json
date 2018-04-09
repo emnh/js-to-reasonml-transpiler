@@ -8,7 +8,8 @@
     "webpack": "webpack -w",
     "dev": "webpack-dev-server --hot",
     "start": "concurrently --raw 'npm run bsbwatch' 'npm run dev'",
-    "test": "nyc node src/runtests.js"
+    "test": "nyc node src/runtests.js",
+    "coverage_report": "nyc report --reporter=html"
   },
   "keywords": [
     "BuckleScript"
