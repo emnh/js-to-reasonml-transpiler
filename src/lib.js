@@ -480,9 +480,13 @@ var test = {
   statement2: 'fakeConsole.log("fish");',
   out2: 'fish',
   outFloat1: '0.123',
+  outFloat1F: 0.123,
   outFloat2: '0.456',
+  outFloat2F: 0.456,
   outInt1: '234',
-  outInt2: '567'
+  outInt1I: 234,
+  outInt2: '567',
+  outInt2I: 567
 };
 
 function isMutable(code, node) {
@@ -648,46 +652,99 @@ var processNodes = {
       translated.code = '{\n' + rml.join('\n') + '\n' + '}\n';
       return translated;
     },
-    tests: []
+    tests: [
+      {
+        program:
+          `
+          {
+            ${test.statement1}
+            ${test.statement2}
+          }
+          `,
+        out: [test.out1, test.out2]
+      }
+    ]
   },
   BinaryExpression: {
     translate: function(code, node) {
       var translated = {};
       var operator = node.operator;
-      if (operator == '%') {
-        operator = 'mod';
-      }
       var left = node.left.translate().code;
       var right = node.right.translate().code;
-      if (node[globalTypeName] === 'float' ||
-          node.left[globalTypeName] === 'float' ||
-          node.right[globalTypeName] === 'float') {
-        operator = operator + '.';
-        if (node.left[globalTypeName] == 'int') {
-          left = 'float_of_int(' + left + ')';
+      var isCall = false;
+      if (operator == '%') {
+        operator = 'mod';
+        if (node[globalTypeName] === 'float' ||
+            node.left[globalTypeName] === 'float' ||
+            node.right[globalTypeName] === 'float') {
+          operator = 'mod_float';
+          isCall = true;
         }
-        if (node.right[globalTypeName] == 'int') {
-          right = 'float_of_int(' + right + ')';
-        }
-      } else if (node[globalTypeName] == 'string' && operator == '+') {
-        operator = '++';
-        if (node.left[globalTypeName] == 'int') {
-          left = 'string_of_int(' + left + ')';
-        }
-        if (node.right[globalTypeName] == 'int') {
-          right = 'string_of_int(' + right + ')';
-        }
-        if (node.left[globalTypeName] == 'float') {
-          left = 'string_of_float(' + left + ')';
-        }
-        if (node.right[globalTypeName] == 'float') {
-          right = 'string_of_float(' + right + ')';
+      } else {
+        if (node[globalTypeName] === 'float' ||
+            node.left[globalTypeName] === 'float' ||
+            node.right[globalTypeName] === 'float') {
+          operator = operator + '.';
+          if (node.left[globalTypeName] == 'int') {
+            left = 'float_of_int(' + left + ')';
+          }
+          if (node.right[globalTypeName] == 'int') {
+            right = 'float_of_int(' + right + ')';
+          }
+        } else if (node[globalTypeName] == 'string' && operator == '+') {
+          operator = '++';
+          if (node.left[globalTypeName] == 'int') {
+            left = 'string_of_int(' + left + ')';
+          }
+          if (node.right[globalTypeName] == 'int') {
+            right = 'string_of_int(' + right + ')';
+          }
+          if (node.left[globalTypeName] == 'float') {
+            left = 'string_of_float(' + left + ')';
+          }
+          if (node.right[globalTypeName] == 'float') {
+            right = 'string_of_float(' + right + ')';
+          }
         }
       }
-      translated.code = '(' + left + ' ' + operator + ' ' + right + ')';
+      if (!isCall) {
+        translated.code = '(' + left + ' ' + operator + ' ' + right + ')';
+      } else {
+        translated.code = operator + '(' + left + ', ' + right + ')';
+      }
       return translated;
     },
-    tests: []
+    tests: [
+      {
+        program:
+          `
+            fakeConsole.log("${test.out1}" + "${test.out2}");
+            fakeConsole.log(${test.outInt1} + ${test.outInt2});
+            fakeConsole.log(${test.outInt1} - ${test.outInt2});
+            fakeConsole.log(${test.outInt1} * ${test.outInt2});
+            fakeConsole.log(${test.outInt1} / ${test.outInt2});
+            fakeConsole.log(${test.outInt2} % ${test.outInt1});
+            fakeConsole.log(${test.outFloat1} + ${test.outFloat2});
+            fakeConsole.log(${test.outFloat1} - ${test.outFloat2});
+            fakeConsole.log(${test.outFloat1} * ${test.outFloat2});
+            fakeConsole.log(${test.outFloat1} / ${test.outFloat2});
+            fakeConsole.log(${test.outFloat2} % ${test.outFloat1});
+          `,
+        out: [
+          test.out1 + test.out2,
+          test.outInt1I + test.outInt2I,
+          test.outInt1I - test.outInt2I,
+          test.outInt1I * test.outInt2I,
+          test.outInt1I / test.outInt2I,
+          test.outInt2I % test.outInt1I,
+          test.outFloat1F + test.outFloat2F,
+          test.outFloat1F - test.outFloat2F,
+          test.outFloat1F * test.outFloat2F,
+          test.outFloat1F / test.outFloat2F,
+          test.outFloat2F % test.outFloat1F
+        ]
+      }
+    ]
   },
   BreakStatement: defaultBody,
   CallExpression: {
