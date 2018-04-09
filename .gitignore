@@ -12,3 +12,4 @@ npm-debug.log
 /src/*.bs.js
 /rebuild/
 /src/Example*.re
+/.nyc_output/
