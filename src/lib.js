@@ -857,9 +857,19 @@ var processNodes = {
       var first = node.test.translate().code;
       var second = node.consequent.translate().code;
       var third = node.alternate.translate().code;
-      if (node.consequent[globalTypeName] != node.alternate[globalTypeName]) {
-        if (node.consequent[globalTypeName] == 'string' && node.alternate[globalTypeName] == 'int') {
+      if (node.consequent[globalTypeName] !== node.alternate[globalTypeName]) {
+        if (node.consequent[globalTypeName] === 'string' && node.alternate[globalTypeName] === 'int') {
           third = 'string_of_int(' + third + ')';
+        } else if (node.consequent[globalTypeName] === 'int' && node.alternate[globalTypeName] === 'string') {
+          second = 'string_of_int(' + second + ')';
+        } else if (node.consequent[globalTypeName] === 'string' && node.alternate[globalTypeName] === 'float') {
+          third = 'string_of_float(' + third + ')';
+        } else if (node.consequent[globalTypeName] === 'float' && node.alternate[globalTypeName] === 'string') {
+          second = 'string_of_float(' + second + ')';
+        } else if (node.consequent[globalTypeName] === 'float' && node.alternate[globalTypeName] === 'int') {
+          third = 'float_of_int(' + third + ')';
+        } else if (node.consequent[globalTypeName] === 'int' && node.alternate[globalTypeName] === 'float') {
+          second = 'float_of_int(' + second + ')';
         }
       }
       translated.code = 'if (' + boolWrapper + '(' + first + ')) {' + second + '} else {' + third + '}';
@@ -871,12 +881,27 @@ var processNodes = {
           `
           var f = function(test) {
             var a = test ? "${test.out1}" : "${test.out2}";
+            var b = test ? "${test.out1}" : ${test.outInt1};
+            var c = test ? ${test.outInt1} : "${test.out1}";
+            var d = test ? "${test.out1}" : ${test.outFloat1};
+            var e = test ? ${test.outFloat1} : "${test.out1}";
+            var f = test ? ${test.outInt1} : ${test.outFloat1};
+            var g = test ? ${test.outFloat1} : ${test.outInt1};
             fakeConsole.log(a);
+            fakeConsole.log(b);
+            fakeConsole.log(c);
+            fakeConsole.log(d);
+            fakeConsole.log(e);
+            fakeConsole.log(f);
+            fakeConsole.log(g);
           };
           f(true);
           f(false);
           `,
-        out: [test.out1, test.out2]
+        out: [
+          test.out1, test.out1, test.outInt1, test.out1, test.outFloat1, test.outInt1I, test.outFloat1F,
+          test.out2, test.outInt1, test.out1, test.outFloat1, test.out1, test.outFloat1F, test.outInt1I
+        ]
       }
     ]
   },
@@ -905,6 +930,7 @@ var processNodes = {
       var translated = {};
       var prefix = '';
       var suffix = '';
+      var shouldIgnore = false;
       if (node.expression[globalTypeName] !== 'unit' && node.expression[globalTypeName] !== undefined) {
         /*
         prefix = 'let _ = ';
@@ -912,16 +938,25 @@ var processNodes = {
         /*
         suffix = '|> ignore';
         */
+        shouldIgnore = node.expression.type !== 'AssignmentExpression';
       };
       translated.code = prefix + node.expression.translate().code + suffix;
-      var shouldIgnore = node.expression.type !== 'AssignmentExpression';
       var ignore = shouldIgnore ? ' /* |> ignore */ ' : '';
       if (!translated.code.trim().endsWith(';')) {
         translated.code += ignore + statementTerminator;
       }
       return translated;
     },
-    tests: []
+    tests: [
+      {
+        program:
+          `
+          var a = function() { ${test.statement1} };
+          a();
+          `,
+        out: [test.out1]
+      }
+    ]
   },
   ForStatement: {
     translate: function(code, node) {
@@ -1043,7 +1078,7 @@ var processNodes = {
               ${test.statement1}
             } else {
               ${test.statement2}
-            };
+            }
           };
           f(true);
           f(false);
@@ -1435,6 +1470,10 @@ function U(index, arg) {
   */
   if (globalTypeName in node && node[globalTypeName].replace(/float/g, 'int') === newType) {
     // unify int and float to float
+  } else if (globalTypeName in node && node[globalTypeName].replace(/string/g, 'int') === newType) {
+    // unify int and string to string
+  } else if (globalTypeName in node && node[globalTypeName].replace(/string/g, 'float') === newType) {
+    // unify float and string to string
   } else {
     node[globalTypeName] = newType;
   }
