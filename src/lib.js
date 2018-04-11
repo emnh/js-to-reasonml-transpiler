@@ -17,13 +17,8 @@ exports.useFlow = useFlow;
 var enableAllIfBranches = [false];
 exports.enableAllIfBranches = enableAllIfBranches;
 
-var useBoolWrapper = false;
 var boolWrapper = '';
 var boolType = 'bool';
-if (useBoolWrapper) {
-  boolWrapper = 'Js.to_bool';
-  boolType = 'Js.boolean';
-}
 
 var consoleLog = function() {
   if (debug[0]) {
@@ -1156,13 +1151,7 @@ var processNodes = {
       if (node[globalTypeName] == 'string') {
         translated.code = '"' + node.value + '"';
       } else if (node[globalTypeName] === boolType) {
-        if (useBoolWrapper && node.raw === 'true') {
-          translated.code = 'Js.true_';
-        } else if (useBoolWrapper && node.raw === 'false') {
-          translated.code = 'Js.false_';
-        } else {
-          translated.code = node.raw;
-        }
+        translated.code = node.raw;
       } else if (node.raw === 'null') {
         translated.code = 'Js.Nullable.null';
       } else {
