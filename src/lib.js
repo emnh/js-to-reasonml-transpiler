@@ -865,12 +865,37 @@ var processNodes = {
       translated.code = 'if (' + boolWrapper + '(' + first + ')) {' + second + '} else {' + third + '}';
       return translated;
     },
-    tests: []
+    tests: [
+      {
+        program:
+          `
+          var f = function(test) {
+            var a = test ? "${test.out1}" : "${test.out2}";
+            fakeConsole.log(a);
+          };
+          f(true);
+          f(false);
+          `,
+        out: [test.out1, test.out2]
+      }
+    ]
   },
   ContinueStatement: defaultBody,
   DoWhileStatement: defaultBody,
   DebuggerStatement: defaultBody,
-  EmptyStatement: defaultBody,
+  EmptyStatement: {
+    translate: function(code, node) {
+      var translated = {};
+      translated.code = '';
+      return translated;
+    },
+    tests: [
+      {
+        program: ';',
+        out: []
+      }
+    ]
+  },
   ExportAllDeclaration: defaultBody,
   ExportDefaultDeclaration: defaultBody,
   ExportNamedDeclaration: defaultBody,
@@ -1012,11 +1037,17 @@ var processNodes = {
     tests: [
       {
         program:
-          'var f = function(test) {' +
-          'if (test) { ' + test.statement1 + ' } else { ' + test.statement2 + '}' +
-          '};' +
-          'f(true);' +
-          'f(false);',
+          `
+          var f = function(test) {
+            if (test) {
+              ${test.statement1}
+            } else {
+              ${test.statement2}
+            };
+          };
+          f(true);
+          f(false);
+          `,
         out: [test.out1, test.out2]
       }
     ]
@@ -1501,7 +1532,8 @@ function postProcessTypes(code, parentNode, node) {
     'ReturnStatement': {},
     'ForStatement': {},
     'IfStatement': {},
-    'SpreadElement': {}
+    'SpreadElement': {},
+    'EmptyStatement': {}
   };
   var checkIt = function(ignores, propName) {
     var f = function(node) {
@@ -1874,6 +1906,10 @@ var compile = function(data, evalTimeout) {
   };
 
   var code = escodegen.generate(syntaxForTypes, option);
+  var remaining = Object.keys(state.astNodeTypeUnresolved).length;
+  if (remaining == 0) {
+    state.astResolve();
+  }
 
   try {
     eval(code);
@@ -1885,7 +1921,7 @@ var compile = function(data, evalTimeout) {
 
   var timeoutPromise = new Promise((resolve, reject) => {
     setTimeout(function() {
-        reject(new Error('timeout for resolving all types'))
+        resolve('timeout'); // new Error('timeout for resolving all types'))
       },
       evalTimeout);
   });
@@ -1911,7 +1947,17 @@ var compile = function(data, evalTimeout) {
     return program;
   };
 
-  return Promise.race([timeoutPromise, state.astTypesResolvedPromise]).then(afterEval);
+  return Promise
+    .race([timeoutPromise, state.astTypesResolvedPromise])
+    .then(function(value) {
+      if (value !== undefined && value === 'timeout') {
+        console.log("Timeout for resolving all types, code follows: ");
+        console.log(code);
+        return Promise.reject(new Error("Timeout for resolving all types"));
+      } else {
+        return afterEval();
+      }
+    });
 };
 exports.compile = compile;
 
