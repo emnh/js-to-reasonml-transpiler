@@ -1199,7 +1199,6 @@ var processNodes = {
       }
     ]
   },
-  MemberExpression: defaultBody,
   MemberExpression: {
     translate: function(code, node) {
       var translated = {};
@@ -1218,9 +1217,12 @@ var processNodes = {
         */
         var retType = 'unit';
         var callName = node.property.name;
+        var index = '';
         if (node.computed) {
           attributes = ['[@bs.set_index]'];
           callName = '';
+          argTypes = [argTypes[0], node.property[globalTypeName], argTypes[1]];
+          index = ', ' + node.property.translate().code;
         }
         var value = {
           attributes: attributes,
@@ -1230,7 +1232,7 @@ var processNodes = {
         };
         externName = addExtern(externName, value);
         translated.codeSet = externName;
-        translated.codeLeft = node.object.translate().code;
+        translated.codeLeft = node.object.translate().code + index;
         useRight = parentNode.right[globalTypeName];
       }
       var retType = node[globalTypeName];
@@ -1290,7 +1292,17 @@ var processNodes = {
       }
       return translated;
     },
-    tests: [],
+    tests: [
+      {
+        program: 
+          `
+          var a = ["${test.out1}", "${test.out2}"];
+          a[0] = a[1];
+          fakeConsole.log(a);
+          `,
+        out: [[test.out2, test.out2]]
+      }
+    ],
   },
   MetaProperty: defaultBody,
   MethodDefinition: defaultBody,
