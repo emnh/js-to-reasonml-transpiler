@@ -410,7 +410,7 @@ function applyExpression(opts, code, node) {
   var isNotExtern = false;
   var objArgType = '';
   if (opts.type === 'call') {
-    if (node.callee.type == 'MemberExpression') {
+    if (node.callee.type === 'MemberExpression') {
       objArgType = node.callee.object[globalTypeName];
       argTypes.push(objArgType);
       objArg = node.callee.object.translate().code;
@@ -419,10 +419,17 @@ function applyExpression(opts, code, node) {
         objArg = objArg + ', ';
       };
       */
-    } else {
+      /*
+    } else if (node.callee.type === 'FunctionExpression') {
+      isNotExtern = true;
+      */
+    } else if (node.callee.type === 'Identifier') {
       /* Top level call */
       isNotExtern = !(callName in myRoot) && !(modName in modMap);
       createId = callName;
+    } else {
+      isNotExtern = true;
+      createId = '(' + node.callee.translate().code + ')';
     };
   };
   addArgTypes(node, argTypes);
@@ -1049,9 +1056,14 @@ var processNodes = {
               fakeConsole.log(arg);
               return "${test.out2}";
             }
-            fakeConsole.log(b("${test.out1}"));
+            // Assignment to other var for code coverage of F()
+            var c = b;
+            fakeConsole.log(c("${test.out1}"));
+            fakeConsole.log(function(arg) {
+              return arg;
+            }("${test.out2}"));
           `,
-        out: [test.out1, test.out1, test.out2]
+        out: [test.out1, test.out1, test.out2, test.out2]
       }
     ]
   },
@@ -1315,7 +1327,19 @@ var processNodes = {
         code,
         node);
     },
-    tests: []
+    tests: [
+      {
+        program:
+          `
+          var external = require('../src/external.js');
+          var a = new external.A("${test.out1}");
+          fakeConsole.log(a);
+          `,
+        out: [
+          new test.external.A(test.out1)
+        ]
+      }
+    ]
   },
   ObjectExpression: {
     translate: function(code, node) {
@@ -1330,7 +1354,15 @@ var processNodes = {
       translated.code = '{' + rml.join(',') + '}';
       return translated;
     },
-    tests: []
+    tests: [
+      {
+        program:
+          `
+          fakeConsole.log({ x: 2 });
+          `,
+        out: [{x: 2}]
+      }
+    ]
   },
   ObjectPattern: defaultBody,
   Program: {
@@ -1396,7 +1428,16 @@ var processNodes = {
       }
       return translated;
     },
-    tests: [],
+    tests: [
+      {
+        program:
+          `
+            fakeConsole.log(+${test.outInt1});
+            fakeConsole.log(-${test.outInt2});
+          `,
+        out: [test.outInt1I, -test.outInt2I]
+      }
+    ],
   },
   UpdateExpression: {
     translate: function(code, node) {
@@ -1413,7 +1454,18 @@ var processNodes = {
       }
       return translated;
     },
-    tests: []
+    tests: [
+      {
+        program: `
+          var x = ${test.outInt1};
+          x++;
+          fakeConsole.log(x);
+          x--;
+          fakeConsole.log(x);
+        `,
+        out: [test.outInt1I + 1, test.outInt1I]
+      }
+    ]
   },
   VariableDeclaration: {
     translate: function(code, node) {
@@ -1618,16 +1670,6 @@ function F(index, args, f) {
   parentNode[globalTypeName] = funType;
   return retval;
 };
-
-function getNodePath(node, f) {
-  var path = [];
-  while (state.astNodeParents[node[globalIndexName]] != null) {
-    path.push(node);
-    node = state.astNodeParents[node[globalIndexName]];
-  }
-  path.push(node);
-  return path.reverse();
-}
 
 function checkNodePath(node, f) {
   while (state.astNodeParents[node[globalIndexName]] != null) {
