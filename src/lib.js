@@ -471,6 +471,30 @@ function applyExpression(opts, code, node) {
   return translated;
 };
 
+function getConditionalParts(node) {
+  var first = node.test.translate().code;
+  var second = node.consequent.translate().code;
+  var secondType = node.consequent[globalTypeName];
+  var third = node.alternate !== null ? node.alternate.translate().code : null;
+  var thirdType = node.alternate !== null ? node.alternate[globalTypeName] : 'unit';
+  if (secondType !== thirdType) {
+    if (secondType === 'string' && thirdType === 'int') {
+      third = 'string_of_int(' + third + ')';
+    } else if (secondType === 'int' && thirdType === 'string') {
+      second = 'string_of_int(' + second + ')';
+    } else if (secondType === 'string' && thirdType === 'float') {
+      third = 'string_of_float(' + third + ')';
+    } else if (secondType === 'float' && thirdType === 'string') {
+      second = 'string_of_float(' + second + ')';
+    } else if (secondType === 'float' && thirdType === 'int') {
+      third = 'float_of_int(' + third + ')';
+    } else if (secondType === 'int' && thirdType === 'float') {
+      second = 'float_of_int(' + second + ')';
+    }
+  }
+  return [first, second, third];
+}
+
 function lazy(f) {
   var cached;
   var hasCached = false;
@@ -518,7 +542,11 @@ var test = {
   outInt1: '234',
   outInt1I: 234,
   outInt2: '567',
-  outInt2I: 567
+  outInt2I: 567,
+  outBool1: 'true',
+  outBool1B: 1,
+  outBool2: 'false',
+  outBool2B: 0
 };
 exports.test = test;
 
@@ -854,24 +882,7 @@ var processNodes = {
   ConditionalExpression: {
     translate: function(code, node) {
       var translated = {};
-      var first = node.test.translate().code;
-      var second = node.consequent.translate().code;
-      var third = node.alternate.translate().code;
-      if (node.consequent[globalTypeName] !== node.alternate[globalTypeName]) {
-        if (node.consequent[globalTypeName] === 'string' && node.alternate[globalTypeName] === 'int') {
-          third = 'string_of_int(' + third + ')';
-        } else if (node.consequent[globalTypeName] === 'int' && node.alternate[globalTypeName] === 'string') {
-          second = 'string_of_int(' + second + ')';
-        } else if (node.consequent[globalTypeName] === 'string' && node.alternate[globalTypeName] === 'float') {
-          third = 'string_of_float(' + third + ')';
-        } else if (node.consequent[globalTypeName] === 'float' && node.alternate[globalTypeName] === 'string') {
-          second = 'string_of_float(' + second + ')';
-        } else if (node.consequent[globalTypeName] === 'float' && node.alternate[globalTypeName] === 'int') {
-          third = 'float_of_int(' + third + ')';
-        } else if (node.consequent[globalTypeName] === 'int' && node.alternate[globalTypeName] === 'float') {
-          second = 'float_of_int(' + second + ')';
-        }
-      }
+      var [first, second, third] = getConditionalParts(node);
       translated.code = 'if (' + boolWrapper + '(' + first + ')) {' + second + '} else {' + third + '}';
       return translated;
     },
@@ -969,7 +980,17 @@ var processNodes = {
         '}' + statementTerminator;
       return translated;
     },
-    tests: []
+    tests: [
+      {
+        program:
+          `
+            for(var i = 0; i < 3; i++) {
+              fakeConsole.log(i);
+            }
+          `,
+        out: [0, 1, 2]
+      }
+    ]
   },
   ForOfStatement: defaultBody,
   ForInStatement: defaultBody,
@@ -990,7 +1011,23 @@ var processNodes = {
         '}\n' + statementTerminator;
       return translated;
     },
-    tests: []
+    tests: [
+      {
+        program:
+          `
+            function a() {
+              ${test.statement1}
+            }
+            a();
+            function b(arg) {
+              fakeConsole.log(arg);
+              return "${test.out2}";
+            }
+            fakeConsole.log(b("${test.out1}"));
+          `,
+        out: [test.out1, test.out1, test.out2]
+      }
+    ]
   },
   FunctionExpression: {
     translate: function(code, node) {
@@ -1005,7 +1042,23 @@ var processNodes = {
         (ignoreReturn ? ' |> ignore' : '');
       return translated;
     },
-    tests: []
+    tests: [
+      {
+        program:
+          `
+            var a = function() {
+              ${test.statement1}
+            }
+            a();
+            var b = function(arg) {
+              fakeConsole.log(arg);
+              return "${test.out2}";
+            }
+            fakeConsole.log(b("${test.out1}"));
+          `,
+        out: [test.out1, test.out1, test.out2]
+      }
+    ]
   },
   Identifier: {
     translate: function(code, node) {
@@ -1046,19 +1099,21 @@ var processNodes = {
       };
       return translated;
     },
-    tests: []
+    tests: [
+      {
+        program:
+          `
+          var a = "${test.out1}";
+          fakeConsole.log(a);
+          `,
+        out: [test.out1]
+      }
+    ]
   },
   IfStatement: {
     translate: function(code, node) {
       var translated = {};
-      var first = node.test.translate().code;
-      var second = node.consequent.translate().code;
-      var third = node.alternate.translate().code;
-      if (node.consequent[globalTypeName] != node.alternate[globalTypeName]) {
-        if (node.consequent[globalTypeName] == 'string' && node.alternate[globalTypeName] == 'int') {
-          third = 'string_of_int(' + third + ')';
-        }
-      }
+      var [first, second, third] = getConditionalParts(node);
       if (third !== null) {
         translated.code =
           'if (' + boolWrapper + '(' + first + ')) ' + second +
@@ -1079,11 +1134,14 @@ var processNodes = {
             } else {
               ${test.statement2}
             }
+            if (test) {
+              ${test.statement1}
+            }
           };
           f(true);
           f(false);
           `,
-        out: [test.out1, test.out2]
+        out: [test.out1, test.out1, test.out2]
       }
     ]
   },
@@ -1112,7 +1170,18 @@ var processNodes = {
       }
       return translated;
     },
-    tests: []
+    tests: [
+      {
+        program:
+          `
+          fakeConsole.log("${test.out1}");
+          fakeConsole.log(${test.outFloat1});
+          fakeConsole.log(${test.outInt1});
+          fakeConsole.log(${test.outBool1});
+          `,
+        out: [test.out1, test.outFloat1F, test.outInt1I, test.outBool1B]
+      }
+    ]
   },
   LabeledStatement: defaultBody,
   LogicalExpression: {
@@ -1124,7 +1193,22 @@ var processNodes = {
       translated.code = '(' + left + ' ' + operator + ' ' + right + ')';
       return translated;
     },
-    tests: []
+    tests: [
+      {
+        program:
+          `
+          function a(one, two) {
+            fakeConsole.log(one || two);
+            fakeConsole.log(one && two);
+          }
+          a(true, true);
+          a(false, true);
+          a(true, false);
+          a(false, false);
+          `,
+        out: [1, 1, 1, 0, 1, 0, 0, 0]
+      }
+    ]
   },
   MemberExpression: defaultBody,
   MemberExpression: {
