@@ -920,7 +920,33 @@ var processNodes = {
     ]
   },
   ContinueStatement: defaultBody,
-  DoWhileStatement: defaultBody,
+  DoWhileStatement: {
+    translate: function(code, node) {
+      var translated = {};
+      translated.code =
+        '{\n' +
+        'let _whileTest = ref(true)' + statementTerminator +
+        'while (_whileTest^) {\n' +
+        node.body.translate().code + ' |> ignore' + statementTerminator +
+        '_whileTest := ' + boolWrapper + '(' + node.test.translate().code + ')' +
+        '}' + statementTerminator +
+        '}' + statementTerminator;
+      return translated;
+    },
+    tests: [
+      {
+        program:
+          `
+            var i = 0;
+            do {
+              fakeConsole.log(i);
+              i++;
+            } while(i < 3);
+          `,
+        out: [0, 1, 2]
+      }
+    ]
+  },
   DebuggerStatement: defaultBody,
   EmptyStatement: {
     translate: function(code, node) {
