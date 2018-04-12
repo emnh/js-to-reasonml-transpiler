@@ -261,6 +261,7 @@ function getCode(code, node) {
   var part = code.slice(a, b);
   return part;
 };
+exports.getCode = getCode;
 
 function capitalizeFirstLetter(string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
@@ -1886,6 +1887,7 @@ function walk(code, parentNode, node, postProcess) {
   }
   return node;
 };
+exports.walk = walk;
 
 function rewrite(code, ast, postProcess) {
   return walk(code, null, ast, postProcess);
