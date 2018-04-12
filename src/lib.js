@@ -1533,7 +1533,29 @@ var processNodes = {
     },
     tests: []
   },
-  WhileStatement: defaultBody,
+  WhileStatement: {
+    translate: function(code, node) {
+      var translated = {};
+      translated.code =
+        'while (' + boolWrapper + '(' + node.test.translate().code + ')) {\n' +
+        node.body.translate().code + ' |> ignore' + statementTerminator +
+        '}' + statementTerminator;
+      return translated;
+    },
+    tests: [
+      {
+        program:
+          `
+            var i = 0;
+            while(i < 3) {
+              fakeConsole.log(i);
+              i++;
+            }
+          `,
+        out: [0, 1, 2]
+      }
+    ]
+  },
   WithStatement: defaultBody,
   YieldExpression: defaultBody
 };
@@ -1706,21 +1728,36 @@ function checkNodePath(node, f) {
 }
 
 function postProcessTypes(code, parentNode, node) {
+  /* From https://github.com/jquery/esprima/blob/a9f845b27ffe726f8d60cf501481217a231bfdcc/docs/syntax-tree-format.md */
   var directIgnores = {
-    'VariableDeclaration': {},
-    'FunctionDeclaration': {},
-    'ExpressionStatement': {},
     /* 'AssignmentExpression': {}, */
-    'Program': {},
-    'Property': {},
     'Line': {},
     'Block': {},
     'BlockStatement': {},
-    'ReturnStatement': {},
+    'BreakStatement': {},
+    'ContinueStatement': {},
+    'DebuggerStatement': {},
+    'DoWhileStatement': {},
+    'EmptyStatement': {},
+    'ExpressionStatement': {},
+    'ForInStatement': {},
+    'ForOfStatement': {},
     'ForStatement': {},
+    'FunctionDeclaration': {},
+    'FunctionDeclaration': {},
     'IfStatement': {},
+    'LabeledStatement': {},
+    'Program': {},
+    'Property': {},
+    'ReturnStatement': {},
     'SpreadElement': {},
-    'EmptyStatement': {}
+    'SwitchStatement': {},
+    'ThrowStatement': {},
+    'TryStatement': {},
+    'VariableDeclaration': {},
+    'VariableDeclaration': {},
+    'WhileStatement': {},
+    'WithStatement': {}
   };
   var checkIt = function(ignores, propName) {
     var f = function(node) {
