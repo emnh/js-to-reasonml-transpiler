@@ -1403,7 +1403,27 @@ var processNodes = {
     },
     tests: []
   },
-  SequenceExpression: defaultBody,
+  SequenceExpression: {
+    translate: function(code, node) {
+      var translated = {};
+      var rml = [];
+      for (var i = 0; i < node.expressions.length; i++) {
+        var child = node.expressions[i];
+        rml.push(child.translate().code);
+      }
+      translated.code = '{\n' + rml.join(statementTerminator) + '\n' + '}\n';
+      return translated;
+    },
+    tests: [
+      {
+        program:
+          `
+          fakeConsole.log(("${test.out1}", "${test.out2}"));
+          `,
+        out: [test.out2]
+      }
+    ]
+  },
   SpreadElement: defaultBody,
   Super: defaultBody,
   SwitchCase: defaultBody,
