@@ -939,11 +939,15 @@ var processNodes = {
           `
             var i = 0;
             do {
-              fakeConsole.log(i);
+              var j = i;
+              do {
+                fakeConsole.log(j);
+                j++;
+              } while(j < 3);
               i++;
             } while(i < 3);
           `,
-        out: [0, 1, 2]
+        out: [0, 1, 2, 1, 2, 2]
       }
     ]
   },
