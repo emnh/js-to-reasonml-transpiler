@@ -17,20 +17,20 @@
   "author": "Eivind Magnus Hvidevold",
   "license": "MIT",
   "devDependencies": {
-    "nyc": "^11.6.0",
-    "webpack": "^3.11.0",
-    "webpack-bundle-analyzer": "^2.11.0",
-    "webpack-dev-server": "^2.11.1"
+    "nyc": "^11.9.0",
+    "webpack": "^3.12.0",
+    "webpack-bundle-analyzer": "^2.13.1",
+    "webpack-dev-server": "^2.11.3"
   },
   "dependencies": {
     "bs-platform": "^2.2.3",
-    "codemirror": "^5.36.0",
+    "codemirror": "^5.40.0",
     "css-loader": "^0.28.11",
-    "escodegen": "^1.9.1",
-    "esprima": "^4.0.0",
+    "escodegen": "^1.11.0",
+    "esprima": "^4.0.1",
     "jquery": "^3.3.1",
-    "pixi.js": "^4.7.1",
-    "puppeteer": "^1.2.0",
+    "pixi.js": "^4.8.1",
+    "puppeteer": "^1.7.0",
     "raw-loader": "^0.5.1",
     "style-loader": "^0.20.3",
     "window-or-global": "^1.0.1"
