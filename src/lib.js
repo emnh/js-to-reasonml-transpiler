@@ -514,11 +514,14 @@ function lazy(f) {
  * TODO:
  * - astNodeParents is private. getParent() to access.
  * */
-var defaultBody = {
-  translate: function(code, node) {
-    throw(new Error('unimplemented node type: ' + node.type));
-  },
-  tests: []
+var defaultBody = function(resolveType) {
+  return {
+    resolveType: resolveType,
+    translate: function(code, node) {
+      throw(new Error('unimplemented node type: ' + node.type));
+    },
+    tests: []
+  };
 };
 
 function node(nodeObject) {
@@ -567,10 +570,30 @@ function isMutable(code, node) {
   return mutable;
 }
 
+function getLoopParent(code, node) {
+  var parentNode = node;
+  var done = false;
+  while (!done) {
+    var nextParentNode = state.astNodeParents[parentNode[globalIndexName]];
+    if (nextParentNode === null) {
+      throw new Error('no loop parent of break/continue');
+    }
+    if (nextParentNode.type === 'ForStatement' ||
+        nextParentNode.type === 'WhileStatement' ||
+        nextParentNode.type === 'DoWhileStatement' ||
+        nextParentNode.type === 'SwitchStatement') {
+      return nextParentNode;
+    }
+    parentNode = nextParentNode;
+  }
+  return parentNode;
+}
+
 /* List of syntax nodes from
  * https://github.com/jquery/esprima/blob/master/src/syntax.ts .*/
 var processNodes = {
   AssignmentExpression: {
+    resolveType: true,
     translate: function(code, node) {
       var translated = {};
       var op = node.operator;
@@ -691,8 +714,9 @@ var processNodes = {
       },
     ]
   },
-  AssignmentPattern: defaultBody,
+  AssignmentPattern: defaultBody(true),
   ArrayExpression: {
+    resolveType: true,
     translate: function(code, node) {
       var translated = {};
       var args = [];
@@ -712,10 +736,11 @@ var processNodes = {
       }
     ]
   },
-  ArrayPattern: defaultBody,
-  ArrowFunctionExpression: defaultBody,
-  AwaitExpression: defaultBody,
+  ArrayPattern: defaultBody(true),
+  ArrowFunctionExpression: defaultBody(true),
+  AwaitExpression: defaultBody(true),
   BlockStatement: {
+    resolveType: false,
     translate: function(code, node) {
       var translated = {};
       var rml = [];
@@ -740,6 +765,7 @@ var processNodes = {
     ]
   },
   BinaryExpression: {
+    resolveType: true,
     translate: function(code, node) {
       var translated = {};
       var operator = node.operator;
@@ -837,8 +863,40 @@ var processNodes = {
       }
     ]
   },
-  BreakStatement: defaultBody,
+  BreakStatement: {
+    resolveType: false,
+    preTranslate: function(code, node) {
+      var loopParent = getLoopParent(code, node);
+      loopParent.containsBreak = true;
+    },
+    translate: function(code, node) {
+      var translated = {};
+      translated.code = '_whileBreak := true' + statementTerminator;
+      if (node.label !== null) {
+        throw new Error('Labeled break not supported: label was: ' + node.label.name);
+      }
+      return translated;
+    },
+    tests: [
+      /*
+      {
+        program:
+          `
+            var i = 0;
+            while(true) {
+              fakeConsole.log(i + 5);
+              if (i > 3) break;
+              fakeConsole.log(i);
+              i++;
+            }
+          `,
+        out: []
+      }
+      */
+    ]
+  },
   CallExpression: {
+    resolveType: true,
     translate: function(code, node) {
       var translated = {};
       if (getCode(code, node).startsWith("console.log")) {
@@ -878,11 +936,12 @@ var processNodes = {
       }
     ]
   },
-  CatchClause: defaultBody,
-  ClassBody: defaultBody,
-  ClassDeclaration: defaultBody,
-  ClassExpression: defaultBody,
+  CatchClause: defaultBody(false),
+  ClassBody: defaultBody(false),
+  ClassDeclaration: defaultBody(false),
+  ClassExpression: defaultBody(true),
   ConditionalExpression: {
+    resolveType: true,
     translate: function(code, node) {
       var translated = {};
       var [first, second, third] = getConditionalParts(node);
@@ -919,8 +978,24 @@ var processNodes = {
       }
     ]
   },
-  ContinueStatement: defaultBody,
+  ContinueStatement: {
+    resolveType: false,
+    preTranslate: function(code, node) {
+      var loopParent = getLoopParent(code, node);
+      loopParent.containsContinue = true;
+    },
+    translate: function(code, node) {
+      var translated = {};
+      translated.code = '_whileContinue := true' + statementTerminator;
+      if (node.label !== null) {
+        throw new Error('Labeled break not supported: label was: ' + node.label.name);
+      }
+      return translated;
+    },
+    tests: []
+  },
   DoWhileStatement: {
+    resolveType: false,
     translate: function(code, node) {
       var translated = {};
       translated.code =
@@ -951,8 +1026,9 @@ var processNodes = {
       }
     ]
   },
-  DebuggerStatement: defaultBody,
+  DebuggerStatement: defaultBody(false),
   EmptyStatement: {
+    resolveType: false,
     translate: function(code, node) {
       var translated = {};
       translated.code = '';
@@ -965,11 +1041,12 @@ var processNodes = {
       }
     ]
   },
-  ExportAllDeclaration: defaultBody,
-  ExportDefaultDeclaration: defaultBody,
-  ExportNamedDeclaration: defaultBody,
-  ExportSpecifier: defaultBody,
+  ExportAllDeclaration: defaultBody(false),
+  ExportDefaultDeclaration: defaultBody(false),
+  ExportNamedDeclaration: defaultBody(false),
+  ExportSpecifier: defaultBody(false),
   ExpressionStatement: {
+    resolveType: false,
     translate: function(code, node) {
       var translated = {};
       var prefix = '';
@@ -1003,6 +1080,7 @@ var processNodes = {
     ]
   },
   ForStatement: {
+    resolveType: false,
     translate: function(code, node) {
       var translated = {};
       translated.code =
@@ -1025,9 +1103,10 @@ var processNodes = {
       }
     ]
   },
-  ForOfStatement: defaultBody,
-  ForInStatement: defaultBody,
+  ForOfStatement: defaultBody(false),
+  ForInStatement: defaultBody(false),
   FunctionDeclaration: {
+    resolveType: false,
     translate: function(code, node) {
       var translated = {};
       var retType = node[globalTypeName].replace(/.*=> /, '');
@@ -1063,6 +1142,7 @@ var processNodes = {
     ]
   },
   FunctionExpression: {
+    resolveType: true,
     translate: function(code, node) {
       var translated = {};
       var retType = node[globalTypeName].replace(/.*=> /, '');
@@ -1099,6 +1179,7 @@ var processNodes = {
     ]
   },
   Identifier: {
+    resolveType: true,
     translate: function(code, node) {
       var translated = {};
       if (node.name in globalsMap) {
@@ -1149,16 +1230,17 @@ var processNodes = {
     ]
   },
   IfStatement: {
+    resolveType: false,
     translate: function(code, node) {
       var translated = {};
       var [first, second, third] = getConditionalParts(node);
       if (third !== null) {
         translated.code =
-          'if (' + boolWrapper + '(' + first + ')) ' + second +
-          ' else ' + third + statementTerminator;
+          'if (' + boolWrapper + '(' + first + ')) ' + ' { ' + second + ' } ' +
+          ' else ' + '{' + third + '}' + statementTerminator;
       } else {
         translated.code =
-          'if (' + boolWrapper + '(' + first + ')) ' + second + statementTerminator;
+          'if (' + boolWrapper + '(' + first + ')) ' + ' { ' + second + ' } ' + statementTerminator;
       }
       return translated;
     },
@@ -1183,12 +1265,13 @@ var processNodes = {
       }
     ]
   },
-  Import: defaultBody,
-  ImportDeclaration: defaultBody,
-  ImportDefaultSpecifier: defaultBody,
-  ImportNamespaceSpecifier: defaultBody,
-  ImportSpecifier: defaultBody,
+  Import: defaultBody(false),
+  ImportDeclaration: defaultBody(false),
+  ImportDefaultSpecifier: defaultBody(false),
+  ImportNamespaceSpecifier: defaultBody(false),
+  ImportSpecifier: defaultBody(false),
   Literal: {
+    resolveType: true,
     translate: function(code, node) {
       var translated = {};
       if (node[globalTypeName] == 'string') {
@@ -1215,8 +1298,9 @@ var processNodes = {
       }
     ]
   },
-  LabeledStatement: defaultBody,
+  LabeledStatement: defaultBody(false),
   LogicalExpression: {
+    resolveType: true,
     translate: function(code, node) {
       var translated = {};
       var operator = node.operator;
@@ -1243,6 +1327,7 @@ var processNodes = {
     ]
   },
   MemberExpression: {
+    resolveType: true,
     translate: function(code, node) {
       var translated = {};
       var parentNode = state.astNodeParents[node[globalIndexName]];
@@ -1347,9 +1432,10 @@ var processNodes = {
       }
     ],
   },
-  MetaProperty: defaultBody,
-  MethodDefinition: defaultBody,
+  MetaProperty: defaultBody(false),
+  MethodDefinition: defaultBody(false),
   NewExpression: {
+    resolveType: true,
     translate: function(code, node) {
       return applyExpression({
           type: 'new',
@@ -1373,6 +1459,7 @@ var processNodes = {
     ]
   },
   ObjectExpression: {
+    resolveType: true,
     translate: function(code, node) {
       var translated = {};
       var rml = [];
@@ -1395,8 +1482,9 @@ var processNodes = {
       }
     ]
   },
-  ObjectPattern: defaultBody,
+  ObjectPattern: defaultBody(false),
   Program: {
+    resolveType: false,
     translate: function(code, node) {
       var translated = {};
       var rml = [];
@@ -1419,13 +1507,15 @@ var processNodes = {
     ]
   },
   Property: {
+    resolveType: false,
     translate: function(code, node) {
       throw new Error("Property should be processed by ObjectExpression.");
     },
     tests: []
   },
-  RestElement: defaultBody,
+  RestElement: defaultBody(false),
   ReturnStatement: {
+    resolveType: false,
     translate: function(code, node) {
       var translated = {};
       translated.code = node.argument.translate().code;
@@ -1434,6 +1524,8 @@ var processNodes = {
     tests: []
   },
   SequenceExpression: {
+    /* TODO: wrap in extra parantheses? */
+    resolveType: true,
     translate: function(code, node) {
       var translated = {};
       var rml = [];
@@ -1454,17 +1546,18 @@ var processNodes = {
       }
     ]
   },
-  SpreadElement: defaultBody,
-  Super: defaultBody,
-  SwitchCase: defaultBody,
-  SwitchStatement: defaultBody,
-  TaggedTemplateExpression: defaultBody,
-  TemplateElement: defaultBody,
-  TemplateLiteral: defaultBody,
-  ThisExpression: defaultBody,
-  ThrowStatement: defaultBody,
-  TryStatement: defaultBody,
+  SpreadElement: defaultBody(false),
+  Super: defaultBody(false),
+  SwitchCase: defaultBody(false),
+  SwitchStatement: defaultBody(false),
+  TaggedTemplateExpression: defaultBody(false),
+  TemplateElement: defaultBody(true),
+  TemplateLiteral: defaultBody(true),
+  ThisExpression: defaultBody(true),
+  ThrowStatement: defaultBody(false),
+  TryStatement: defaultBody(false),
   UnaryExpression: {
+    resolveType: true,
     translate: function(code, node) {
       var translated = {};
       if (node.prefix != true) {
@@ -1491,6 +1584,7 @@ var processNodes = {
     ],
   },
   UpdateExpression: {
+    resolveType: true,
     translate: function(code, node) {
       var translated = {};
       if (node.prefix == true) {
@@ -1519,6 +1613,7 @@ var processNodes = {
     ]
   },
   VariableDeclaration: {
+    resolveType: false,
     translate: function(code, node) {
       var translated = {};
       var rml = [];
@@ -1558,12 +1653,14 @@ var processNodes = {
     tests: []
   },
   VariableDeclarator: {
+    resolveType: true,
     translate: function(code, node) {
       throw new Error("VariableDeclarator should be processed by VariableDeclaration.");
     },
     tests: []
   },
   WhileStatement: {
+    resolveType: false,
     translate: function(code, node) {
       var translated = {};
       translated.code =
@@ -1586,12 +1683,13 @@ var processNodes = {
       }
     ]
   },
-  WithStatement: defaultBody,
-  YieldExpression: defaultBody
+  WithStatement: defaultBody(false),
+  YieldExpression: defaultBody(true)
 };
 
 /* Comment nodes */
 processNodes.Block = {
+  resolveType: false,
   translate: function(code, node) {
     throw new Error("Comments processed elsewhere.");
   },
@@ -1599,6 +1697,7 @@ processNodes.Block = {
 };
 
 processNodes.Line = {
+  resolveType: false,
   translate: function(code, node) {
     throw new Error("Comments processed elsewhere.");
   },
@@ -1606,10 +1705,25 @@ processNodes.Line = {
 };
 
 var tests = {};
+var directIgnores = {};
 exports.tests = tests;
 for (var name in processNodes) {
   var processNode = node(processNodes[name]);
   processNode.name = name;
+  if (!('resolveType' in processNode)) {
+    throw new Error('no resolveType in processNode: ' + name);
+  }
+  if (processNode.resolveType === false) {
+    directIgnores[name] = {};
+  }
+  if (!('translate' in processNode)) {
+    throw new Error('no translate in processNode: ' + name);
+  }
+  if (!('preTranslate' in processNode)) {
+    processNode.preTranslate = function(code, node) {
+      return node;
+    };
+  }
   for (var i = 0; i < processNode.tests.length; i++) {
     var testName = name + i.toString();
     if ('name' in processNode.tests[i]) {
@@ -1647,6 +1761,26 @@ function postProcess(code, parentNode, node) {
   };
   return node;
 };
+
+function preTranslate(code, parentNode, node) {
+  if (node.type in processNodes) {
+    processNodes[node.type].preTranslate(code, node);
+  }
+  return node;
+}
+
+/*
+function addFlowConditions(code, parentNode, node) {
+  var newNode = node;
+  if (node.type in processNodes) {
+    var processNode = processNodes[node.type];
+    if (processNode.addFlowCondition) {
+      getE
+    }
+  }
+  return newNode;
+}
+*/
 
 function checkTypeCount(index) {
   var oldValue = !(index in state.astNodeTypeUnresolved);
@@ -1758,37 +1892,33 @@ function checkNodePath(node, f) {
 }
 
 function postProcessTypes(code, parentNode, node) {
-  /* From https://github.com/jquery/esprima/blob/a9f845b27ffe726f8d60cf501481217a231bfdcc/docs/syntax-tree-format.md */
+  /*
   var directIgnores = {
-    /* 'AssignmentExpression': {}, */
-    'Line': {},
-    'Block': {},
-    'BlockStatement': {},
-    'BreakStatement': {},
-    'ContinueStatement': {},
-    'DebuggerStatement': {},
-    'DoWhileStatement': {},
-    'EmptyStatement': {},
-    'ExpressionStatement': {},
-    'ForInStatement': {},
-    'ForOfStatement': {},
-    'ForStatement': {},
-    'FunctionDeclaration': {},
-    'FunctionDeclaration': {},
-    'IfStatement': {},
-    'LabeledStatement': {},
-    'Program': {},
-    'Property': {},
-    'ReturnStatement': {},
-    'SpreadElement': {},
-    'SwitchStatement': {},
-    'ThrowStatement': {},
-    'TryStatement': {},
-    'VariableDeclaration': {},
-    'VariableDeclaration': {},
-    'WhileStatement': {},
-    'WithStatement': {}
+    BlockStatement: {},
+    BreakStatement: {},
+    ContinueStatement: {},
+    DebuggerStatement: {},
+    DoWhileStatement: {},
+    EmptyStatement: {},
+    ExpressionStatement: {},
+    ForInStatement: {},
+    ForOfStatement: {},
+    ForStatement: {},
+    FunctionDeclaration: {},
+    IfStatement: {},
+    LabeledStatement: {},
+    Program: {},
+    Property: {},
+    ReturnStatement: {},
+    SpreadElement: {},
+    SwitchStatement: {},
+    ThrowStatement: {},
+    TryStatement: {},
+    VariableDeclaration: {},
+    WhileStatement: {},
+    WithStatement: {}
   };
+  */
   var checkIt = function(ignores, propName) {
     var f = function(node) {
       return node.type in ignores;
@@ -2079,7 +2209,7 @@ var compileAST = function(data) {
     syntax = flow.parse('// @flow\n\n' + data);
   }
 
-  var debugU = true;
+  var debugU = false;
   if (debugU) {
     syntax = rewrite(data, syntax, postProcessTypesAdd);
 
@@ -2182,7 +2312,9 @@ var compile = function(data, evalTimeout) {
   });
 
   var afterEval = function() {
-    var syntaxReasonML = rewrite(data, syntax2, postProcess);
+    var syntax3 = rewrite(data, syntax2, preTranslate);
+
+    var syntaxReasonML = rewrite(data, syntax3, postProcess);
 
     var reasonmlCode = syntaxReasonML.translate().code;
 
