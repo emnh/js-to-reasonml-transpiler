@@ -17,7 +17,7 @@
   "author": "Eivind Magnus Hvidevold",
   "license": "MIT",
   "devDependencies": {
-    "nyc": "^11.9.0",
+    "nyc": "^15.1.0",
     "webpack": "^3.12.0",
     "webpack-bundle-analyzer": "^2.13.1",
     "webpack-dev-server": "^2.11.3"
